@@ -155,17 +155,17 @@ function sourceTypeFor(kind: string): EvidenceSourceType {
 
 function actorFor(item?: GBrainContextItem): string {
   const kind = item?.kind.toLowerCase() ?? "";
-  if (kind.includes("customer")) return "deal-team operator";
+  if (kind.includes("customer")) return "customer";
   if (kind.includes("sales")) return "prospect";
   if (kind.includes("product")) return "product team";
   if (kind.includes("founder")) return "founder";
-  if (kind.includes("market") || kind.includes("competitor")) return "deal team";
-  return "deal-team operator";
+  if (kind.includes("market") || kind.includes("competitor")) return "market participant";
+  return "company audience";
 }
 
 function concreteObjectFor(text: string): string {
-  const objects = ["buyer tracker", "tracker", "CRM", "email thread", "thread", "follow-up", "meeting notes", "brief", "calendar", "diligence notes", "dashboard", "workflow template", "Excel"];
-  return objects.find((object) => new RegExp(`\\b${escapeRegExp(object)}\\b`, "i").test(text)) ?? "deal update";
+  const objects = ["product", "service", "customer workflow", "buyer tracker", "document", "record", "tracker", "CRM", "email thread", "follow-up", "meeting notes", "brief", "calendar", "dashboard", "template"];
+  return objects.find((object) => new RegExp(`\\b${escapeRegExp(object)}\\b`, "i").test(text)) ?? "work item";
 }
 
 function audiencePain(actor: string, object: string, behavior: string): string {

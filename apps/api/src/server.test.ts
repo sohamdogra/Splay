@@ -10,11 +10,14 @@ process.env.SOCIAL_AGENT_OUTPUT_DIR = outputDir;
 process.env.SOCIAL_AGENT_TEST_MODE = "0";
 process.env.DATABASE_URL = "";
 process.env.SPLAY_API_TOKEN = "test-token";
+process.env.TOKENMART_API_KEY = "";
 
 const { createApiServer } = await import("./server.ts");
 
 await mkdir(path.join(outputDir, "images"), { recursive: true });
+await mkdir(path.join(outputDir, "videos"), { recursive: true });
 await writeFile(path.join(outputDir, "images", "post-1.png"), "png fixture");
+await writeFile(path.join(outputDir, "videos", "post-1-background.mp4"), "mp4 fixture");
 await writeFile(path.join(outputDir, "post-pack.json"), `${JSON.stringify(fixturePack(), null, 2)}\n`);
 
 let server: Server;
@@ -39,7 +42,12 @@ test.after(async () => {
 test("exposes health, posts, and frontend media URLs", async () => {
   const health = await fetch(`${baseUrl}/api/v1/health`);
   assert.equal(health.status, 200);
-  assert.equal((await health.json()).ok, true);
+  const healthBody = await health.json();
+  assert.equal(healthBody.ok, true);
+  assert.equal(healthBody.generation.media.provider, "tokenmart");
+  assert.equal(healthBody.generation.media.configured, false);
+  assert.equal(healthBody.generation.media.image_model, "dola-seedream-5-0-pro-260628");
+  assert.equal(healthBody.generation.media.video_model, "dreamina-seedance-2-0-260128");
 
   const response = await fetch(`${baseUrl}/api/v1/posts?platform=linkedin&status=draft`, {
     headers: { authorization: "Bearer test-token" }
@@ -48,12 +56,20 @@ test("exposes health, posts, and frontend media URLs", async () => {
   const body = await response.json();
   assert.equal(body.data.length, 1);
   assert.equal(body.data[0].media_url, "/media/images/post-1.png");
+  assert.equal(body.data[0].animation_media_url, "/media/videos/post-1-background.mp4");
 
   const media = await fetch(`${baseUrl}${body.data[0].media_url}`, {
     headers: { authorization: "Bearer test-token" }
   });
   assert.equal(media.status, 200);
   assert.equal(await media.text(), "png fixture");
+
+  const animation = await fetch(`${baseUrl}${body.data[0].animation_media_url}`, {
+    headers: { authorization: "Bearer test-token" }
+  });
+  assert.equal(animation.status, 200);
+  assert.equal(animation.headers.get("content-type"), "video/mp4");
+  assert.equal(await animation.text(), "mp4 fixture");
 });
 
 test("requires bearer auth for mutations", async () => {
@@ -64,6 +80,16 @@ test("requires bearer auth for mutations", async () => {
   });
   assert.equal(response.status, 401);
   assert.equal((await response.json()).error.code, "unauthorized");
+});
+
+test("fails closed when TokenMart animation is not configured", async () => {
+  const response = await fetch(`${baseUrl}/api/v1/jobs/animate-background`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ post_id: "post-1" })
+  });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error.code, "tokenmart_not_configured");
 });
 
 test("records review decisions and explicit schedules", async () => {
@@ -138,11 +164,38 @@ test("persists a versioned brand kit", async () => {
   });
   assert.equal(response.status, 200);
   const kit = (await response.json()).data;
-  assert.equal(kit.version, 2);
+  assert.equal(kit.version, 1);
   assert.equal(kit.colors.primary, "#0F5EFF");
 
   const saved = await fetch(`${baseUrl}/api/v1/brand-kit`, { headers: { authorization: "Bearer test-token" } });
   assert.equal((await saved.json()).data.typography.heading_family, "Brawler");
+});
+
+test("stores company context locally and excludes it from generation by default", async () => {
+  const created = await fetch(`${baseUrl}/api/v1/brain/context`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({
+      title: "Launch note",
+      kind: "product",
+      summary: "The company released a new review workflow for its customers.",
+      tags: ["launch", "product"]
+    })
+  });
+  assert.equal(created.status, 201);
+  const item = (await created.json()).data;
+  assert.equal(item.public_safe, false);
+
+  const list = await fetch(`${baseUrl}/api/v1/brain/context`, { headers: { authorization: "Bearer test-token" } });
+  const body = await list.json();
+  assert.equal(body.meta.total, 1);
+  assert.equal(body.meta.public_safe, 0);
+
+  const removed = await fetch(`${baseUrl}/api/v1/brain/context/${item.id}`, {
+    method: "DELETE",
+    headers: { authorization: "Bearer test-token" }
+  });
+  assert.equal(removed.status, 204);
 });
 
 function authHeaders(): Record<string, string> {
@@ -177,6 +230,9 @@ function fixturePack(): Record<string, unknown> {
       image_prompt: "",
       image_url: path.join(outputDir, "images", "post-1.png"),
       image_provider: "placeholder",
+      animation_background_url: "videos/post-1-background.mp4",
+      animation_provider: "tokenmart-seedance",
+      animation_model: "dreamina-seedance-2-0-260128",
       canva_design_url: null,
       alt_text: "Splay buyer tracker graphic.",
       hashtags: ["DealOps", "PrivateEquity", "InvestmentBanking"],

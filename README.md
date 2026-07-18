@@ -9,6 +9,7 @@ This repository no longer depends on being installed or invoked as a Codex skill
 - A versioned API now exposes posts, media, review decisions, scheduling, generation jobs, publishing jobs, metrics, and feedback operations.
 - Recurring campaigns turn one brief into timezone-aware weekly draft slots that can be reviewed and scheduled through Buffer.
 - A versioned brand kit stores the typography, palette, audience, voice, positioning, and logo settings used by new generation runs.
+- A project-local company brain stores manually ingested context; only records explicitly approved as public-safe can enter generation prompts.
 - Long-running and output-mutating jobs are serialized so a frontend cannot accidentally run conflicting generations or publishes.
 - Publishing is fail-closed: it requires an explicit confirmation plus valid Buffer and Convex storage configuration.
 - Local-only networking, origin allowlisting, optional bearer authentication, bounded request bodies, and safe media paths are built in.
@@ -21,6 +22,7 @@ See [the application architecture](docs/app-architecture.md) and [the OpenAPI co
 - Node.js 22.6 or newer
 - PostgreSQL only when database-backed metrics and feedback are needed
 - A Convex deployment for durable public media URLs used by Buffer
+- A TokenMart API key for generated concepts, background plates, or background animation
 - Buffer credentials only for live publishing
 
 Install the application/Convex tooling and the existing core dependencies:
@@ -104,7 +106,7 @@ Open **Campaigns** in the frontend, then:
 
 Pausing a campaign keeps its approved posts out of the Buffer publishing job. Campaign generation never auto-approves or silently publishes posts.
 
-Open **Brand kit** to edit the live typography and palette preview plus the generation voice, audience, positioning, avoid-list, tagline, and logo URL. Every save creates a new local version in `output/brand-kit.json`; campaign posts record the version used to generate them.
+Open **Brand & brain** to edit the live typography and palette preview plus the generation voice, audience, positioning, avoid-list, tagline, and logo URL. Every save creates a new local version in `output/brand-kit.json`; campaign posts record the version used to generate them. The same screen accepts company facts, product notes, customer lessons, and other source material. Context is stored in `output/company-brain.json` and is excluded from generation until **Approved for public content** is checked.
 
 Useful endpoints:
 
@@ -115,9 +117,12 @@ Useful endpoints:
 - `GET|PATCH /api/v1/campaigns/:id`
 - `POST /api/v1/campaigns/:id/generate`
 - `GET|PUT /api/v1/brand-kit`
+- `GET|POST /api/v1/brain/context`
+- `DELETE /api/v1/brain/context/:id`
 - `POST /api/v1/posts/:id/decisions`
 - `PUT /api/v1/posts/:id/schedule`
 - `POST /api/v1/jobs/generate`
+- `POST /api/v1/jobs/animate-background`
 - `POST /api/v1/jobs/publish-approved`
 - `GET /api/v1/jobs/:id`
 - `GET /media/*`
@@ -127,7 +132,7 @@ The full machine-readable contract is available at `GET /api/v1/openapi.json`.
 
 ## Example frontend flow
 
-Generate from recent GBrain context:
+Generate from public-safe company-brain context:
 
 ```sh
 curl -X POST http://127.0.0.1:4173/api/v1/jobs/generate \
@@ -140,7 +145,15 @@ Generate for a specific topic:
 ```sh
 curl -X POST http://127.0.0.1:4173/api/v1/jobs/generate \
   -H 'Content-Type: application/json' \
-  -d '{"mode":"topic","topic":"buyer trackers lag behind the inbox"}'
+  -d '{"mode":"topic","topic":"what customers value during onboarding"}'
+```
+
+Animate an existing generated background plate with Seedance:
+
+```sh
+curl -X POST http://127.0.0.1:4173/api/v1/jobs/animate-background \
+  -H 'Content-Type: application/json' \
+  -d '{"post_id":"POST_ID","duration":5,"resolution":"720p"}'
 ```
 
 Approve a post with structured feedback:
@@ -165,7 +178,7 @@ If `SPLAY_API_TOKEN` is configured, add `Authorization: Bearer <token>` to every
 
 The API loads root `.env.local` first and then `.env`, without overwriting values already present in the process environment. Existing secrets and generated output are not copied, rewritten, or committed. See `.env.example` for the full configuration surface.
 
-This workspace copy intentionally excludes `.env`, `.gbrain-cache`, `output`, and `node_modules`. Set `GBRAIN_LOCAL_REPO` to a clean local GBrain checkout (or populate `<project>/.gbrain-cache`) before live generation. For a deterministic local demo, set `GBRAIN_USE_MOCK=1` and `SOCIAL_AGENT_USE_MOCK_LLM=1`.
+This workspace intentionally starts without external company knowledge. Save the brand kit and add project-owned company context through the frontend before automatic generation. There is no GBrain bridge or bundled context fallback.
 
 Application settings:
 
@@ -177,18 +190,25 @@ Application settings:
 
 Provider behavior:
 
-- GBrain defaults to the credential-free, allowlisted local reader in `scripts/local-gbrain-mcp.py`.
+- Company context comes only from the project-local brain. Stored-only records never enter generation prompts.
 - Text generation uses OpenAI or Anthropic when configured, otherwise the core's deterministic local generator.
-- Visual generation keeps exact copy and official brand assets under the deterministic compositor.
+- TokenMart uses `dola-seedream-5-0-pro-260628` for concepts/backgrounds and `dreamina-seedance-2-0-260128` for background animation. Set `SOCIAL_AGENT_IMAGE_MODE=tokenmart-canva` to request generated plates.
+- Visual generation keeps exact copy, official brand assets, CTA, pricing, and disclaimers outside the generative request and under a deterministic renderer, Canva, or Figma.
+- The animation endpoint stores a raw background-only MP4 for frontend review. Buffer still publishes the validated static composite until exact video overlays have been rendered.
 - Publishing requires Buffer configuration and Convex storage whenever an approved post has local media.
+
+TokenMart uses `https://model.service-inference.ai` with bearer authentication. Model access is scoped to the API key, so verify the exact configured IDs with `GET /v1/models`. Splay fails the job if an exact model is unavailable; it does not silently fall back to another model.
+
+Current catalog note (July 18, 2026): TokenMart's public catalog includes the requested Seedance model but does not yet expose Seedream under `imageModels`. The exact Seedream ID is supported by BytePlus; confirm that TokenMart has enabled it for your key before relying on live image generation.
 
 ## Core commands
 
 The CLI remains available for maintenance and automation, but the API is the application boundary:
 
 ```sh
-npm run generate -- --topic "diligence context should survive the close"
+npm run generate -- --topic "what customers value during onboarding"
 npm run generate:auto
+npm run animate-background -- --post-id <post_id>
 npm run decide -- --id <post_id> --decision revise --reason too_generic --note "Needs a source artifact"
 npm run schedule -- --time 2026-07-20T16:00:00.000Z --all
 npm run queue-approved
@@ -211,13 +231,7 @@ Run only the frontend tests with:
 npm run test:web
 ```
 
-Safe core generation remains available through the nested runtime:
-
-```sh
-npm --prefix scripts/runtime run test:generate:auto
-```
-
-Test mode writes to `output/test`, disables external publishing/database access, and uses mock providers.
+Test mode writes to `output/test` and disables external publishing/database access. Automatic generation still requires locally stored public-safe context; there is intentionally no bundled company-data fixture.
 
 ## Layout
 
@@ -226,7 +240,7 @@ apps/api/              HTTP application boundary and OpenAPI contract
 apps/web/              React + Vite frontend
 convex/                Convex schema and protected media upload mutations
 scripts/runtime/       Existing editorial, visual, publishing, and analytics core
-scripts/local-gbrain-* Credential-free local GBrain access
+scripts/runtime/src/brain/ Project-local company-brain adapter
 references/            Editorial and operational specifications
 assets/brand-kit/      Official Splay source assets
 prisma (nested core)   Database schema and migrations
@@ -235,7 +249,7 @@ output/                Local post packs, previews, images, QA, and logs (ignored
 
 ## Guardrails retained from the original workflow
 
-- Use public-safe, traceable GBrain evidence; reject internal-only evidence.
+- Use only project-local context explicitly approved as public-safe; reject stored-only and internal-only evidence.
 - Use `Splay`, never `Splay.io`, in public copy.
 - LinkedIn drafts require 3–4 relevant hashtags; X should normally use zero or one.
 - Do not approve compliance failures or editorial rejects.

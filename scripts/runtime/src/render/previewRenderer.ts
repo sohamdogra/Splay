@@ -385,7 +385,7 @@ function buildHtml(pack: PostPack, publishContent: Map<string, LinkedInPublishCo
     <div class="hero">
       <p class="eyebrow">By bankers, for bankers</p>
       <h1>Review the social post pipeline</h1>
-      <p class="meta">Generated ${escapeHtml(formatDate(pack.generated_at))} for ${escapeHtml(pack.brand.name)}. Compare the shared visual, approve platform copy, and keep the final pass grounded in Splay's deal-team voice.</p>
+      <p class="meta">Generated ${escapeHtml(formatDate(pack.generated_at))} for ${escapeHtml(pack.brand.name)}. Compare the visual, approve platform copy, and keep the final pass grounded in the configured brand voice.</p>
       <div class="stats" aria-label="Generation summary">
         <div class="stat"><strong>${grouped.size}</strong><span>ideas</span></div>
         <div class="stat"><strong>${visualCount}</strong><span>visuals</span></div>
@@ -427,6 +427,7 @@ function renderIdea(
 function renderSharedVisual(post: GeneratedPost): string {
   return `<article class="card visual-card">
     <img class="image" src="${escapeHtml(post.image_url)}" alt="${escapeHtml(post.alt_text)}">
+    ${post.animation_background_url ? `<video class="image" controls muted loop playsinline src="${escapeHtml(post.animation_background_url)}"></video>` : ""}
     <div class="card-body">
       <div class="platform">
         <h3>Shared visual</h3>
@@ -435,6 +436,7 @@ function renderSharedVisual(post: GeneratedPost): string {
       ${renderVisualMetadata(post)}
       <p class="meta">Used by the platform copy options for this idea.</p>
       ${post.image_notes?.length ? `<div class="note">${post.image_notes.map(escapeHtml).join("<br>")}</div>` : ""}
+      ${post.animation_notes?.length ? `<div class="note">${post.animation_notes.map(escapeHtml).join("<br>")}</div>` : ""}
       <div class="grid">
         <p class="full"><strong>Alt text</strong><br>${escapeHtml(post.alt_text)}</p>
         <p class="full"><strong>Image prompt</strong><br>${escapeHtml(post.image_prompt)}</p>
@@ -474,7 +476,7 @@ function renderPost(post: GeneratedPost, publishLog: unknown, publishContent?: L
         ${renderEvidence(post)}
         ${renderCandidates(post)}
         ${post.review_history?.length ? `<p class="full"><strong>Review history</strong><br>${post.review_history.map((event) => `${escapeHtml(event.decision)} · ${escapeHtml(event.reason.replace(/_/g, " "))}${event.note ? ` · ${escapeHtml(event.note)}` : ""}`).join("<br>")}</p>` : ""}
-        <p class="full"><strong>GBrain references</strong><br>${post.source_context.gbrain_references.map(escapeHtml).join("<br>") || "No references available"}</p>
+        <p class="full"><strong>Company brain sources</strong><br>${post.source_context.gbrain_references.map(escapeHtml).join("<br>") || "No sources available"}</p>
         ${log ? `<p class="full"><strong>Stage result</strong><br>${escapeHtml(log.message ?? "")}${log.published_url ? ` - <a href="${escapeHtml(log.published_url)}">${escapeHtml(log.published_url)}</a>` : ""}</p>` : ""}
       </div>
     </div>

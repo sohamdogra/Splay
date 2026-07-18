@@ -116,10 +116,10 @@ export async function applyPublishResult(result: PublishResult): Promise<PostPac
 export function defaultBrandProfile(): BrandProfile {
   return {
     name: process.env.BRAND_NAME ?? "Splay",
-    audience: process.env.BRAND_AUDIENCE ?? "private equity, investment banking, deal teams, founders, operators",
-    tone: process.env.BRAND_TONE ?? "sharp, credible, founder-led, direct, thoughtful",
-    positioning: "Splay reads deal work where it happens and turns it into reviewable next steps.",
-    avoid: ["generic AI hype", "revolutionize", "game changer", "fake certainty", "too many emojis", "overexplaining"]
+    audience: process.env.BRAND_AUDIENCE ?? "the audience configured in the brand kit",
+    tone: process.env.BRAND_TONE ?? "clear, specific, credible",
+    positioning: "Use the positioning configured in the brand kit.",
+    avoid: ["unsupported claims", "fake certainty", "generic hype"]
   };
 }
 

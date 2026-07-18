@@ -17,7 +17,7 @@ const navItems: Array<{ view: View; label: string; icon: ReactNode }> = [
   { view: "campaigns", label: "Campaigns", icon: <CalendarRange /> },
   { view: "queue", label: "Review queue", icon: <ListFilter /> },
   { view: "scheduled", label: "Scheduled", icon: <Clock3 /> },
-  { view: "brand-kit", label: "Brand kit", icon: <Palette /> },
+  { view: "brand-kit", label: "Brand & brain", icon: <Palette /> },
   { view: "analytics", label: "Analytics", icon: <BarChart3 /> },
   { view: "settings", label: "Settings", icon: <SlidersHorizontal /> }
 ];
@@ -93,7 +93,7 @@ export function Composer({
         id="post-idea"
         value={idea}
         onChange={(event) => onIdeaChange(event.target.value)}
-        placeholder="Describe the idea you want posted — or leave blank to pull from recent GBrain context…"
+        placeholder="Describe the idea you want posted — or leave blank to use your company brain…"
         maxLength={500}
         onKeyDown={(event) => {
           if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && canSend) onGenerate();
@@ -120,7 +120,7 @@ export function Composer({
             aria-pressed={creative}
           >✦ Creative</button>
         </div>
-        <span className="mode-hint">{idea.trim() ? "Topic mode" : "Auto · GBrain context"}</span>
+        <span className="mode-hint">{idea.trim() ? "Topic mode" : "Auto · company brain"}</span>
         <button className="send-button" type="submit" disabled={!canSend} aria-label="Generate posts">
           {busy ? <span className="spinner light" /> : <ArrowUp />}
         </button>
@@ -192,9 +192,9 @@ const reasonOptions: Record<"revise" | "reject", Array<{ label: string; reason: 
 
 function sourceLabel(post: SplayPost): string {
   const reference = post.source_context?.gbrain_references?.[0];
-  if (!reference) return post.topic ? "Topic · manual" : "GBrain · recent context";
+  if (!reference) return post.topic ? "Topic · manual" : "Company brain";
   const filename = reference.split(/[\\/]/).pop() || reference;
-  return `GBrain · ${filename}`;
+  return `Company brain · ${filename}`;
 }
 
 export function PostCard({ post, approvedCount, onDecision, onSchedule, onPublish }: {

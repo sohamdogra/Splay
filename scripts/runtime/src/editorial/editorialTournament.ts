@@ -38,7 +38,7 @@ export function buildAngleBriefs(idea: TopicIdea): AngleBrief[] {
   const context = idea.editorial_context;
   const pain = context?.audience_pain ?? idea.source_context.summary;
   const behavior = context?.observed_behavior ?? idea.topic;
-  const object = context?.concrete_object ?? "deal update";
+  const object = context?.concrete_object ?? "work item";
   return [
     {
       angle: "operator_observation",
@@ -150,7 +150,7 @@ function alignmentPenalty(intended: ProductRole, candidate: ProductRole): number
 
 function fallbackIntent(): PostIntent {
   return {
-    audience_segment: "deal-team operators",
+    audience_segment: "the configured company audience",
     content_pillar: "workflow_observation",
     objective: "education",
     desired_reader_response: "Recognize one concrete workflow tension.",

@@ -8,7 +8,7 @@ const health = {
   service: "splay-api",
   version: "0.2.0",
   authentication: "local-only",
-  generation: { gbrain: "mock", text: "local-template", image: "canva" },
+  generation: { brain: "project-local", text: "local-template", image: "canva" },
   publishing: { buffer_configured: false, media_host: "convex", media_host_configured: false, mode: "queue" }
 };
 
@@ -47,6 +47,7 @@ describe("Splay frontend", () => {
       if (url.endsWith("/api/v1/health")) return response(health);
       if (url.endsWith("/api/v1/jobs")) return response({ data: [] });
       if (url.endsWith("/api/v1/campaigns")) return response({ data: [] });
+      if (url.endsWith("/api/v1/brain/context")) return response({ data: [] });
       if (url.endsWith("/api/v1/brand-kit")) return response({ data: {
         version: 1, updated_at: "2026-07-18T00:00:00.000Z", name: "Splay", tagline: "Deal context that survives the close.",
         audience: "deal teams", tone: "direct", positioning: "Reviewable next steps.", avoid: [], logo_url: null,

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  addCompanyContext,
   ApiError,
   createCampaign,
   decidePost,
@@ -7,12 +8,14 @@ import {
   generateCampaign,
   getBrandKit,
   getCampaigns,
+  getCompanyContext,
   getHealth,
   getJob,
   getJobs,
   getPosts,
   hasApiToken,
   publishApproved,
+  removeCompanyContext,
   saveBrandKit,
   schedulePost,
   setApiToken,
@@ -21,7 +24,7 @@ import {
 import { Composer, FilterPills, JobStrip, PostCard, Sidebar } from "./components";
 import { CampaignsView } from "./CampaignsView";
 import { BrandKitView } from "./BrandKitView";
-import type { BrandKit, Campaign, CreateCampaignInput, Decision, Filter, Health, Job, Platform, ReviewReason, SplayPost, View } from "./types";
+import type { BrandKit, Campaign, CompanyContextItem, CreateCampaignInput, CreateCompanyContextInput, Decision, Filter, Health, Job, Platform, ReviewReason, SplayPost, View } from "./types";
 
 const POLL_INTERVAL_MS = 1_200;
 
@@ -37,6 +40,7 @@ export default function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [brandKit, setBrandKitState] = useState<BrandKit | null>(null);
+  const [companyContext, setCompanyContext] = useState<CompanyContextItem[]>([]);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [idea, setIdea] = useState("");
   const [platforms, setPlatforms] = useState<Record<Platform, boolean>>({ linkedin: true, x: true });
@@ -52,10 +56,12 @@ export default function App() {
   };
 
   const loadPrivateData = async () => {
-    const [nextPosts, jobs, nextCampaigns, nextBrandKit] = await Promise.all([getPosts(), getJobs(), getCampaigns(), getBrandKit()]);
+    const [nextPosts, jobs, nextCampaigns, nextBrandKit, nextCompanyContext] = await Promise.all([getPosts(), getJobs(), getCampaigns(), getBrandKit(), getCompanyContext()]);
     setPosts([...nextPosts].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)));
     setCampaigns(nextCampaigns);
     setBrandKitState(nextBrandKit);
+    setCompanyContext(nextCompanyContext);
+    if (nextBrandKit.version < 1) setView("brand-kit");
     const current = jobs.find((job) => job.status === "queued" || job.status === "running");
     if (current) setActiveJob(current);
   };
@@ -142,6 +148,16 @@ export default function App() {
 
   const handleSaveBrandKit = async (kit: BrandKit) => {
     setBrandKitState(await saveBrandKit(kit));
+  };
+
+  const handleAddCompanyContext = async (input: CreateCompanyContextInput) => {
+    const item = await addCompanyContext(input);
+    setCompanyContext((current) => [item, ...current]);
+  };
+
+  const handleRemoveCompanyContext = async (id: string) => {
+    await removeCompanyContext(id);
+    setCompanyContext((current) => current.filter((item) => item.id !== id));
   };
 
   const saveToken = async () => {
@@ -266,7 +282,7 @@ export default function App() {
           </section>
         )}
 
-        {view === "brand-kit" && <BrandKitView brandKit={brandKit} onSave={handleSaveBrandKit} />}
+        {view === "brand-kit" && <BrandKitView brandKit={brandKit} contextItems={companyContext} onSave={handleSaveBrandKit} onAddContext={handleAddCompanyContext} onRemoveContext={handleRemoveCompanyContext} />}
 
         {view === "settings" && (
           <section>

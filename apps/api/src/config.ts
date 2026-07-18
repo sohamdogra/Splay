@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadEnv } from "../../../scripts/runtime/src/config/loadEnv.ts";
@@ -11,15 +10,6 @@ loadEnv(path.join(PROJECT_ROOT, ".env"));
 
 setDefault("SOCIAL_AGENT_OUTPUT_DIR", path.join(PROJECT_ROOT, "output"));
 setDefault("SOCIAL_AGENT_EDITORIAL_SPEC_PATH", path.join(PROJECT_ROOT, "references", "editorial-spec.json"));
-setDefault("GBRAIN_LOCAL_REPO", path.join(PROJECT_ROOT, ".gbrain-cache"));
-if (process.env.GBRAIN_USE_MOCK === "1") {
-  setDefault("GBRAIN_CONTEXT_FILE", path.join(CORE_ROOT, "src", "data", "mockGbrainContext.json"));
-}
-
-// A frontend-driven app must not silently fall back to the legacy remote bridge.
-// Prefer the credential-free, allowlisted local GBrain reader included in this repo.
-const localGbrainBridge = path.join(PROJECT_ROOT, "scripts", "local-gbrain-mcp.py");
-if (existsSync(localGbrainBridge)) setDefault("GBRAIN_MCP_BRIDGE_PATH", localGbrainBridge);
 
 export type ApiConfig = {
   host: string;
@@ -57,6 +47,7 @@ export function publicRuntimeConfig(): Record<string, unknown> {
   );
   const convexStorageConfigured = ["CONVEX_URL", "CONVEX_INGEST_TOKEN"]
     .every((key) => Boolean(process.env[key]));
+  const tokenMartConfigured = Boolean(process.env.TOKENMART_API_KEY?.trim());
 
   return {
     service: "splay-api",
@@ -64,17 +55,19 @@ export function publicRuntimeConfig(): Record<string, unknown> {
     test_mode: process.env.SOCIAL_AGENT_TEST_MODE === "1",
     authentication: apiConfig.apiToken ? "bearer" : "local-only",
     generation: {
-      gbrain: process.env.GBRAIN_USE_MOCK === "1"
-        ? "mock"
-        : process.env.GBRAIN_MCP_HTTP_URL
-          ? "http-bridge"
-          : "local-bridge",
+      brain: "project-local",
       text: process.env.OPENAI_API_KEY
         ? "openai"
         : process.env.ANTHROPIC_API_KEY
           ? "anthropic"
           : "local-template",
-      image: process.env.SOCIAL_AGENT_IMAGE_MODE || "canva"
+      image: process.env.SOCIAL_AGENT_IMAGE_MODE || "canva",
+      media: {
+        provider: "tokenmart",
+        configured: tokenMartConfigured,
+        image_model: process.env.TOKENMART_IMAGE_MODEL || "dola-seedream-5-0-pro-260628",
+        video_model: process.env.TOKENMART_VIDEO_MODEL || "dreamina-seedance-2-0-260128"
+      }
     },
     publishing: {
       buffer_configured: Boolean(process.env.BUFFER_API_KEY && bufferProfiles),

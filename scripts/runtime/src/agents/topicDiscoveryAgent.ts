@@ -60,7 +60,7 @@ export async function buildTopicFromManualInput(
       summary: summarize(summary, 360),
       gbrain_references: supporting.flatMap((item) => item.references).slice(0, 8),
       why_now: supporting[0]?.date
-        ? `Recent GBrain context from ${supporting[0].date} supports a timely post.`
+        ? `Recent company-brain context from ${supporting[0].date} supports a timely post.`
         : "The topic was requested directly for draft generation."
     },
     editorial_context: buildEditorialContext(topic, supporting.length > 0 ? supporting : [{
@@ -103,62 +103,7 @@ function buildIdeas(
     };
   });
 
-  const fallbackCandidates = [
-    {
-      topic: "The next owner should not have to reconstruct the deal",
-      angle: "Make the case that deal execution depends on handoffs, ownership, and memory as much as analysis.",
-      keywords: ["deal_workflows", "strategy", "founder_notes", "process_memory"]
-    },
-    {
-      topic: "Diligence context should survive the close",
-      angle: "Connect diligence notes to post-close execution without revealing customer specifics.",
-      keywords: ["post_close", "customer", "pain_points"]
-    },
-    {
-      topic: "Workflow templates beat blank-page automation",
-      angle: "Explain why repeatable operating systems need reusable patterns before generic agents.",
-      keywords: ["templates", "product", "automation", "launch"]
-    },
-    {
-      topic: "Dashboards do not create accountability by themselves",
-      angle: "Draw a sharp line between visibility and ownership in deal operations.",
-      keywords: ["competitors", "accountability", "market"]
-    },
-    {
-      topic: "Good workflow software keeps the decision with the task",
-      angle: "Answer the objection that teams do not need another place to work.",
-      keywords: ["sales", "objections", "positioning"]
-    }
-  ];
-
-  const fallback = fallbackCandidates
-    .map((candidate) => {
-      const supporting = scoreSupportingItems(items, candidate.keywords);
-      const score = scoreIdea(candidate.topic, supporting, brand);
-      const references = supporting.flatMap((item) => item.references).slice(0, 8);
-      const summary = supporting.map((item) => item.summary).join(" ");
-      return {
-        id: `idea-${slugify(candidate.topic)}`,
-        topic: candidate.topic,
-        angle: candidate.angle,
-        score,
-        source_context: {
-          summary: summarize(summary || themes.join(". "), 420),
-          gbrain_references: references,
-          why_now: supporting[0]?.date
-            ? `Recent notes from ${supporting[0].date} show this theme is active in company context.`
-            : "This theme is supported by repeated company positioning."
-        },
-        editorial_context: buildEditorialContext(candidate.topic, supporting),
-        post_intent: buildPostIntent(supporting[0], candidate.topic)
-      };
-    })
-    .map((idea) => ({
-      ...idea,
-      score: idea.score - recentPenalty(idea.topic, idea.source_context.gbrain_references, recentPosts) - (sourceDriven.length > 0 ? 2 : 0)
-    }));
-
-  return uniqueIdeas([...sourceDriven, ...fallback])
+  return uniqueIdeas(sourceDriven)
     .filter((idea) => idea.source_context.summary.length > 0)
     .filter((idea) => !idea.editorial_context || validateEditorialContext(idea.editorial_context, idea.source_context).errors.length === 0)
     .sort((a, b) => b.score - a.score);
@@ -182,16 +127,8 @@ function relatedSupportingItems(seed: GBrainContextItem, items: GBrainContextIte
 
 function topicFromSourceItem(item: GBrainContextItem): string {
   const title = item.title
-    .replace(/^(founder note on|customer pattern:|product update:|strategy memo:|competitor theme:|repeated prospect objection:)\s*/i, "")
     .replace(/\s+/g, " ")
     .trim();
-  const lower = `${title} ${item.summary}`.toLowerCase();
-  if (lower.includes("another workflow tool")) return "Teams do not want another place to update";
-  if (lower.includes("dashboards") && lower.includes("accountability")) return "Dashboards show work; they do not assign it";
-  if (lower.includes("process memory")) return "Document how the firm decides before automation acts";
-  if (lower.includes("post-close") || lower.includes("after close")) return "Post-close handoffs lose owner context first";
-  if (lower.includes("workflow templates")) return "Reusable deal motions need inspection before automation";
-  if (lower.includes("operating cadence")) return "Deal cadence keeps getting rebuilt by hand";
   return sentenceCase(title || firstSentence(item.summary) || item.kind.replace(/_/g, " "));
 }
 
@@ -251,8 +188,8 @@ function scoreSupportingItems(items: GBrainContextItem[], keywords: string[]): G
 function scoreIdea(topic: string, supporting: GBrainContextItem[], brand: BrandProfile): number {
   let score = 5;
   score += Math.min(3, supporting.length);
-  if (topic.toLowerCase().includes("deal")) score += 1;
-  if (brand.audience.toLowerCase().includes("deal")) score += 1;
+  if (topic.toLowerCase().includes(brand.name.toLowerCase())) score += 1;
+  if (brand.audience.trim()) score += 1;
   return Math.min(10, score);
 }
 
@@ -269,7 +206,7 @@ function extractThemes(items: GBrainContextItem[]): string[] {
     .slice(0, 6)
     .map(([tag]) => tag.replace(/_/g, " "));
 
-  return tags.length > 0 ? tags : ["deal workflows", "customer pain points", "process memory"];
+  return tags;
 }
 
 function uniqueById(items: GBrainContextItem[]): GBrainContextItem[] {

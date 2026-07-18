@@ -4,6 +4,7 @@ import path from "node:path";
 import { creativeRunSeed, isCreativeMode, shouldUseUniqueImagesPerPost } from "../config/creativeMode.ts";
 import { INTERNAL_JARGON_PHRASES } from "../editorial/editorialGate.ts";
 import { getOutputDir } from "../config/runtimeMode.ts";
+import { TokenMartApiError, TokenMartMediaClient } from "../providers/tokenMartMedia.ts";
 import { lockVisualToImageCopy, renderCuratedVisual } from "../render/socialVisualRenderer.ts";
 import { FINAL_IMAGE_HEIGHT, FINAL_IMAGE_WIDTH } from "../visual/finalImageContract.ts";
 import type { CanvaImageRequest, GeneratedPost, RenderContract, VisualMetadata, VisualQaReport } from "../types/index.ts";
@@ -35,7 +36,7 @@ const SPLAY_VISUAL_STYLE = [
   "Use the official Splay fan mark with Splay as the consistent brand signature. Do not use Splay.io in social creative."
 ];
 
-type ImageMode = "canva" | "gpt-canva" | "placeholder";
+type ImageMode = "canva" | "tokenmart-canva" | "placeholder";
 
 type ImageAssetResult = {
   imageUrl: string;
@@ -97,12 +98,12 @@ export async function attachImages(posts: GeneratedPost[], outputDir = getOutput
       const visualPost = approvedVisualAsset === post.approved_visual_asset
         ? post
         : { ...post, approved_visual_asset: approvedVisualAsset };
-      const image_prompt = image_provider === "gpt-canva"
-        ? buildGptBackgroundPrompt(post, referenceAssetPaths, visual)
+      const image_prompt = image_provider === "tokenmart-canva"
+        ? buildGeneratedBackgroundPrompt(post, referenceAssetPaths, visual)
         : buildImagePrompt(post, visual);
       const alt_text = buildAltText(post, visual);
-      const imageAsset = image_provider === "gpt-canva"
-        ? await createGptCanvaAssets(visualPost, image_prompt, outputDir, visual)
+      const imageAsset = image_provider === "tokenmart-canva"
+        ? await createTokenMartCanvaAssets(visualPost, image_prompt, outputDir, visual)
         : await createCuratedAssets(visualPost, outputDir, visual);
 
       sharedImage = {
@@ -119,7 +120,7 @@ export async function attachImages(posts: GeneratedPost[], outputDir = getOutput
       visualHistory.push(entry);
       newHistory.push(entry);
 
-      if (image_provider === "canva" || image_provider === "gpt-canva") {
+      if (image_provider === "canva" || image_provider === "tokenmart-canva") {
         canvaRequests.push(buildCanvaRequest(post, image_prompt, alt_text, imageAsset, referenceAssetPaths, visual));
       }
     }
@@ -136,7 +137,7 @@ export async function attachImages(posts: GeneratedPost[], outputDir = getOutput
       image_provider: sharedImage.provider,
       canva_design_url: null,
       warnings: post.warnings,
-      image_notes: sharedImage.provider === "canva" || sharedImage.provider === "gpt-canva"
+      image_notes: sharedImage.provider === "canva" || sharedImage.provider === "tokenmart-canva"
         ? [...sharedImage.asset.notes, getCanvaNote(sharedImage.provider), ...sharedNote]
         : [...sharedImage.asset.notes, ...sharedNote],
       visual: sharedImage.visual,
@@ -192,16 +193,16 @@ function buildImagePrompt(post: GeneratedPost, visual: VisualMetadata): string {
   ].join(" ");
 }
 
-function buildGptBackgroundPrompt(post: GeneratedPost, referenceAssetPaths: string[], visual: VisualMetadata): string {
+function buildGeneratedBackgroundPrompt(post: GeneratedPost, referenceAssetPaths: string[], visual: VisualMetadata): string {
   return [
     "Generate a premium abstract background plate for a Splay social post.",
-    "This is background artwork only. Do not render words, letters, logos, brand marks, symbols, captions, UI text, numbers, or a visible headline.",
-    "The final headline and official mark plus Splay signature will be added later by the curated layout.",
+    "This is background artwork only. Do not render words, letters, logos, brand marks, symbols, typography, captions, UI text, CTA text, pricing, disclaimers, numbers, or a visible headline.",
+    "The exact headline, official logo, Splay signature, typography, CTA, pricing, and disclaimers will be added afterward by a deterministic renderer, Canva, or Figma.",
     `Compose the background for a final ${FINAL_IMAGE_WIDTH}x${FINAL_IMAGE_HEIGHT} (16:9) crop; do not build a portrait or square composition.`,
     `Topic guiding the mood: ${post.topic}.`,
     `Visual direction: ${visual.motif} using the ${visual.palette} palette for the ${visual.template_family} curated layout.`,
     ...creativeVisualInstructions(post, visual),
-    "Design philosophy: serious enterprise intelligence, deal workflow memory, founder-led judgment, modern private-market operating systems.",
+    "Design philosophy: credible editorial clarity, restrained brand expression, and source-aware visual storytelling.",
     "Use depth, atmosphere, focus, high contrast, and quiet restraint. Keep clean negative space where text can sit.",
     "Use a near-black dark navy-blue plus Charcoal #1F2937 base, luminous layered flowing waves in company blue #60A5FA, and only a small 3-5% Splay Blue #0F5EFF accent. Keep the bottom quarter visually active and never create a gray or washed-out neutral dominant field.",
     "Do not copy the local SPLAY references exactly; use them only as a quality bar for palette discipline, editorial polish, source-citation motifs, and institutional restraint.",
@@ -248,19 +249,19 @@ async function createCuratedAssets(
   };
 }
 
-async function createGptCanvaAssets(
+async function createTokenMartCanvaAssets(
   post: GeneratedPost,
   prompt: string,
   outputDir: string,
   visual: VisualMetadata
 ): Promise<ImageAssetResult> {
   const notes: string[] = [];
-  const candidateCount = getGptBackgroundCandidateCount();
+  const candidateCount = getBackgroundCandidateCount();
 
-  if (process.env.OPENAI_API_KEY) {
+  if (process.env.TOKENMART_API_KEY) {
     for (let candidate = 1; candidate <= candidateCount; candidate += 1) {
       try {
-        const backgroundImagePath = await createGptBackgroundImage(post, prompt, outputDir, candidate);
+        const backgroundImagePath = await createTokenMartBackgroundImage(post, prompt, outputDir, candidate);
         const rendered = await renderCuratedVisual(post, visual, outputDir, backgroundImagePath);
         return {
           imageUrl: rendered.imageUrl,
@@ -272,17 +273,18 @@ async function createGptCanvaAssets(
           qa: rendered.qa,
           notes: [
             ...notes,
-            `GPT background candidate ${candidate} passed visual QA.`,
+            `TokenMart Seedream background candidate ${candidate} passed visual QA.`,
             "Visual QA passed; PNG preview is the publishing source of truth."
           ]
         };
       } catch (error) {
-        notes.push(`GPT background candidate ${candidate} rejected: ${error instanceof Error ? error.message : "unknown error"}`);
+        notes.push(`TokenMart Seedream background candidate ${candidate} rejected: ${error instanceof Error ? error.message : "unknown error"}`);
+        if (error instanceof TokenMartApiError && !error.retryable) throw error;
       }
     }
-    throw new Error(`All ${candidateCount} GPT background candidate(s) failed visual QA. Refusing to substitute a deterministic live background. ${notes.join(" ")}`);
+    throw new Error(`All ${candidateCount} TokenMart background candidate(s) failed visual QA. Refusing to substitute a deterministic live background. ${notes.join(" ")}`);
   } else {
-    notes.push("Deterministic background used because OPENAI_API_KEY is not set.");
+    notes.push("Deterministic background used because TOKENMART_API_KEY is not set.");
   }
 
   const rendered = await renderCuratedVisual(post, visual, outputDir);
@@ -296,50 +298,19 @@ async function createGptCanvaAssets(
     qa: rendered.qa,
     notes: [
       ...notes,
-      "Curated deterministic background used after GPT background was unavailable or failed QA.",
+      "Curated deterministic background used because TokenMart background generation was unavailable.",
       "Visual QA passed; PNG preview is the publishing source of truth."
     ]
   };
 }
 
-async function createGptBackgroundImage(post: GeneratedPost, prompt: string, outputDir: string, candidate: number): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
-
-  const model = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
-  const size = process.env.OPENAI_IMAGE_SIZE ?? "1024x1536";
-  const quality = process.env.OPENAI_IMAGE_QUALITY ?? "medium";
-  const outputFormat = process.env.OPENAI_IMAGE_FORMAT ?? "png";
-  const extension = outputFormat === "jpeg" ? "jpg" : outputFormat;
+async function createTokenMartBackgroundImage(post: GeneratedPost, prompt: string, outputDir: string, candidate: number): Promise<string> {
+  if (!process.env.TOKENMART_API_KEY) throw new Error("TOKENMART_API_KEY is not set");
+  const generated = await new TokenMartMediaClient().generateBackground({ prompt });
+  const extension = imageExtension(generated.contentType);
   const fileName = `${post.id}-background-${candidate}.${extension}`;
   const filePath = path.join(outputDir, "images", fileName);
-
-  const response = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model,
-      prompt,
-      size,
-      quality,
-      output_format: outputFormat,
-      n: 1
-    })
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenAI image request failed (${response.status}): ${errorBody.slice(0, 300)}`);
-  }
-
-  const result = await response.json() as { data?: Array<{ b64_json?: string }> };
-  const imageBase64 = result.data?.[0]?.b64_json;
-  if (!imageBase64) throw new Error("OpenAI image response did not include b64_json");
-
-  await writeFile(filePath, Buffer.from(imageBase64, "base64"));
+  await writeFile(filePath, generated.bytes);
   return `images/${fileName}`;
 }
 
@@ -351,7 +322,7 @@ function buildCanvaRequest(
   referenceAssetPaths: string[],
   visual: VisualMetadata
 ): CanvaImageRequest {
-  const body = visual.brief.supporting_text || "Workflows deal teams can trust.";
+  const body = visual.brief.supporting_text || "Clear, trustworthy company context.";
   return {
     post_id: post.id,
     platform: post.platform,
@@ -396,24 +367,31 @@ function buildCanvaRequest(
   };
 }
 
-function getGptBackgroundCandidateCount(): number {
-  const parsed = Number(process.env.SOCIAL_AGENT_GPT_BACKGROUND_CANDIDATES ?? "2");
+function getBackgroundCandidateCount(): number {
+  const parsed = Number(process.env.TOKENMART_BACKGROUND_CANDIDATES ?? process.env.SOCIAL_AGENT_GPT_BACKGROUND_CANDIDATES ?? "2");
   if (!Number.isFinite(parsed)) return 2;
   return Math.max(1, Math.min(5, Math.floor(parsed)));
 }
 
 function getImageMode(): ImageMode {
   if (process.env.SOCIAL_AGENT_IMAGE_MODE === "placeholder") return "placeholder";
-  if (process.env.SOCIAL_AGENT_IMAGE_MODE === "gpt-canva") return "gpt-canva";
-  if (isCreativeMode() && process.env.SOCIAL_AGENT_CREATIVE_IMAGE_MODE === "gpt-canva" && process.env.OPENAI_API_KEY) return "gpt-canva";
+  if (["tokenmart-canva", "gpt-canva"].includes(process.env.SOCIAL_AGENT_IMAGE_MODE || "")) return "tokenmart-canva";
+  if (isCreativeMode() && ["tokenmart-canva", "gpt-canva"].includes(process.env.SOCIAL_AGENT_CREATIVE_IMAGE_MODE || "") && process.env.TOKENMART_API_KEY) return "tokenmart-canva";
   return "canva";
 }
 
 function getCanvaNote(imageMode: ImageMode): string {
-  if (imageMode === "gpt-canva") {
-    return "GPT background plus Canva text pipeline queued: use output/canva-requests.json and output/canva-imports/ for final editable Canva designs.";
+  if (imageMode === "tokenmart-canva") {
+    return "TokenMart Seedream background plus deterministic text/logo pipeline queued: use output/canva-requests.json and output/canva-imports/ for final editable Canva designs.";
   }
   return "Canva image queued: create the final design from output/canva-requests.json.";
+}
+
+function imageExtension(contentType: string): "png" | "jpg" | "webp" {
+  if (contentType === "image/png" || contentType === "application/octet-stream") return "png";
+  if (contentType === "image/jpeg") return "jpg";
+  if (contentType === "image/webp") return "webp";
+  throw new Error(`Unsupported TokenMart image content type: ${contentType}`);
 }
 
 async function getReferenceAssetPaths(): Promise<string[]> {

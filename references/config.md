@@ -2,26 +2,31 @@
 
 Keep secrets in the shell environment or local `.env`; never commit them to the application.
 
-## GBrain
+## Company Brain
 
-- `GBRAIN_USE_MOCK=1`: force local JSON fallback.
-- `GBRAIN_CONTEXT_FILE`: local context JSON path.
-- `GBRAIN_MCP_HTTP_URL`: optional JSON-RPC HTTP bridge.
-- `GBRAIN_MCP_BRIDGE_PATH`: optional stdio bridge path. The application defaults to `scripts/local-gbrain-mcp.py`, which reads the synced local checkout without transmitting credentials.
-- `GBRAIN_LOCAL_REPO`: clean, sparse local `splay-gbrain` cache used by `scripts/local-gbrain-mcp.py` (default `<project>/.gbrain-cache`). Do not point autonomous runs at a developer worktree that may contain uncommitted files.
-- `GBRAIN_LOCAL_MAX_STALENESS_HOURS`: maximum allowed age of the checkout's latest commit before local retrieval fails closed (default `48`).
-- `GBRAIN_MCP_TIMEOUT_MS`: bridge timeout.
-- `GBRAIN_MCP_*_METHOD`: method name overrides for actual MCP tool names.
+Company context is stored in `output/company-brain.json` through the frontend or `/api/v1/brain/context`. It has no external provider settings. A record must have `public_safe: true` before the runtime will return it to a generation job. The original external GBrain, MCP bridge, and bundled fallback dataset are intentionally unsupported.
 
 ## Generation
 
 - `SOCIAL_AGENT_CREATIVE_MODE=1`: enable creative runtime variation.
 - `SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST=1`: avoid sharing one image across LinkedIn/X posts.
-- `SOCIAL_AGENT_IMAGE_MODE=canva|gpt-canva|placeholder`: compatibility renderer mode.
-- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`: optional compatibility keys only.
-- `OPENAI_IMAGE_MODEL`, `OPENAI_IMAGE_SIZE`, `OPENAI_IMAGE_QUALITY`, `OPENAI_IMAGE_FORMAT`: optional GPT image compatibility settings.
+- `SOCIAL_AGENT_IMAGE_MODE=canva|tokenmart-canva|placeholder`: select deterministic-only, TokenMart background plus deterministic composition, or placeholder rendering.
+- `SOCIAL_AGENT_CREATIVE_IMAGE_MODE=tokenmart-canva`: use TokenMart backgrounds for API creative-generation jobs.
+- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`: optional text-generation keys only.
+- `TOKENMART_API_KEY`: TokenMart bearer credential. Keep it server-side.
+- `TOKENMART_BASE_URL`: gateway override; defaults to `https://model.service-inference.ai`.
+- `TOKENMART_IMAGE_MODEL`: defaults to `dola-seedream-5-0-pro-260628`.
+- `TOKENMART_IMAGE_SIZE`: defaults to `1280x720` for the 16:9 composition contract.
+- `TOKENMART_VIDEO_MODEL`: defaults to `dreamina-seedance-2-0-260128`.
+- `TOKENMART_BACKGROUND_CANDIDATES`: number of ranked Seedream plates requested per post (default `2`).
+- `TOKENMART_MAX_RETRIES`: retry count for timeouts, rate limits, and server errors only (default `2`). Billing and other terminal client errors are never retried.
+- `TOKENMART_REQUEST_TIMEOUT_MS`, `TOKENMART_VIDEO_POLL_INTERVAL_MS`, `TOKENMART_VIDEO_TIMEOUT_MS`: request and asynchronous animation timing controls.
 
-Final publishing artwork follows the fixed 1200x675 (16:9) dark-blue wave contract regardless of compatibility background-provider dimensions. Existing rendered 1080x1350 posts retain their recorded QA metadata and remain readable as legacy assets; new attachments and replacements use 16:9.
+TokenMart produces concepts, background plates, and raw background animation only. Exact Splay logo assets, typography, CTA, pricing, and disclaimers stay outside the generative request and must be added afterward with the deterministic HTML/canvas renderer, Canva, or Figma. Splay never substitutes a different media model silently: confirm the configured key can see both exact model IDs through TokenMart's `GET /v1/models` endpoint before a live run.
+
+As of July 18, 2026, TokenMart's unauthenticated public catalog lists the requested Seedance model but no Seedream image models. The requested Seedream ID is documented by BytePlus and may require key-specific TokenMart entitlement. Treat a TokenMart `403 ERR_MODEL_001` or `404 ERR_MODEL_002` as a configuration/access issue; Splay stops instead of switching providers or models.
+
+Final publishing artwork follows the fixed 1200x675 (16:9) dark-blue wave contract regardless of background-provider dimensions. Existing rendered 1080x1350 posts retain their recorded QA metadata and remain readable as legacy assets; new attachments and replacements use 16:9.
 
 ## Output And Test Mode
 

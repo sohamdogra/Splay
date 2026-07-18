@@ -79,37 +79,30 @@ test("accepts compact visual candidates", () => {
   assert.equal(brief.source_cue, "FROM THE WORK");
 });
 
-test("uses social-native visual copy for current Splay content patterns", () => {
-  const examples: Array<[string, string, string]> = [
+test("uses compact, source-grounded visual copy across company contexts", () => {
+  const examples: Array<[string, string]> = [
     [
       "Dashboards show work; they do not assign it",
-      "Several competitor tools emphasize dashboards. Internal discussion noted that dashboards help visibility, but they do not by themselves create clear ownership or repeatable follow-through.",
-      "Visibility is not ownership"
+      "Dashboards help visibility, but they do not by themselves create clear ownership or repeatable follow-through."
     ],
     [
-      "Automation needs process memory before agents",
-      "The memo argues that automation in deal environments fails when it begins with generic agents instead of process memory. The useful wedge is documenting how a specific firm actually makes decisions.",
-      "Teach the agent your process"
+      "Automation needs documented process context",
+      "The team found that useful automation begins by documenting how people actually make decisions."
     ],
     [
-      "Reusable deal motions need inspection before automation",
-      "The product team shipped a first pass at reusable workflow templates for recurring deal motions. The update is intended to make repeated work easier to inspect, improve, and assign.",
-      "Make repeated work inspectable"
+      "Reusable workflows need inspection before automation",
+      "The product team shipped reusable workflow templates. Repeated work is now easier to inspect, improve, and assign."
     ],
     [
-      "The workflow-tool objection is really about adoption cost",
-      "Prospects worry that new systems create another destination. The strongest response has been to frame Splay as a way to codify existing work into a lightweight operating system, not replace every tool.",
-      "Don't make teams work twice"
+      "New software should reduce adoption cost",
+      "Customers prefer systems that fit current routines without forcing every team into a separate workspace."
     ]
   ];
 
-  for (const [topic, summary, headline] of examples) {
+  for (const [topic, summary] of examples) {
     const brief = buildExtractiveBrief(makePost({ topic, summary }));
-    assert.equal(brief.headline, headline);
-    if (headline === "Don't make teams work twice") {
-      assert.equal(brief.content_mode, "principles");
-      assert.equal(brief.contrast, null);
-    }
+    assert.ok(brief.headline.length > 0);
+    assert.ok(brief.supporting_text.length > 0);
     assertCompactVisualCopy(brief);
     assertNoRoboticVisualCopy(brief);
   }

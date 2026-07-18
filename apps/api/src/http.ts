@@ -10,6 +10,7 @@ const CONTENT_TYPES: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".jpg": "image/jpeg",
   ".json": "application/json; charset=utf-8",
+  ".mp4": "video/mp4",
   ".png": "image/png",
   ".svg": "image/svg+xml; charset=utf-8",
   ".webp": "image/webp"
@@ -114,7 +115,7 @@ export function sendNoContent(request: IncomingMessage, response: ServerResponse
 function responseHeaders(request: IncomingMessage, requestId?: string): Record<string, string> {
   const headers: Record<string, string> = {
     "access-control-allow-headers": "authorization, content-type",
-    "access-control-allow-methods": "GET, POST, PUT, OPTIONS",
+    "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "cache-control": "no-store",
     "x-content-type-options": "nosniff"
   };

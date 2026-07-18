@@ -217,9 +217,6 @@ function extractFragments(summary: string): string[] {
 }
 
 function buildVisualCopy(post: GeneratedPost, fragments: string[]): VisualCopy {
-  const story = visualStoryFromPost(post);
-  if (story) return story;
-
   const sourceFragments = fragments.length > 0 ? fragments : [post.topic];
   const headline = firstDistinctVisualLine([
     contrastHeadline(post.topic),
@@ -236,123 +233,6 @@ function buildVisualCopy(post: GeneratedPost, fragments: string[]): VisualCopy {
   const items = buildEvidenceItems(sourceFragments, [headline, supporting]);
 
   return { headline, supporting, items };
-}
-
-function visualStoryFromPost(post: GeneratedPost): VisualCopy | null {
-  const haystack = `${post.topic} ${post.source_context.summary}`.toLowerCase();
-  const source = post.source_context.summary;
-
-  if (/\bdashboards?\b/.test(haystack) && /\b(?:accountability|ownership|assign|follow-through)\b/.test(haystack)) {
-    return {
-      headline: "Visibility is not ownership",
-      supporting: "A dashboard still needs a next move",
-      items: evidenceFromTexts([
-        ["Shows the work", "dashboards help visibility"],
-        ["Needs an owner", "clear ownership"],
-        ["Follow-through matters", "repeatable follow-through"]
-      ], source),
-      contrast: {
-        left: { text: "Shows the work", source_excerpt: post.topic },
-        right: { text: "Assigns the owner", source_excerpt: post.topic }
-      },
-      mode: "contrast"
-    };
-  }
-
-  if (/\boperating cadence|deal cadence|rebuilt by hand|handoff rules|diligence follow-ups|status rituals\b/.test(post.topic.toLowerCase())) {
-    return {
-      headline: "Stop rebuilding deal cadence",
-      supporting: "Keep the rules with recurring work",
-      items: evidenceFromTexts([
-        ["Handoff rules", "handoff rules"],
-        ["Diligence follow-ups", "diligence follow-ups"],
-        ["Status rituals", "status rituals"]
-      ], source),
-      mode: "workflow"
-    };
-  }
-
-  if (/\bagents?\b/.test(haystack) && /\bprocess memory\b/.test(haystack)) {
-    return {
-      headline: "Teach the agent your process",
-      supporting: "Agents need to know how decisions happen",
-      items: evidenceFromTexts([
-        ["Skip generic agents", "generic agents instead of process memory"],
-        ["Map real decisions", "how a specific firm actually makes decisions"],
-        ["Keep firm context", "process memory"]
-      ], source),
-      mode: "workflow"
-    };
-  }
-
-  if (/\btemplates?|recurring deal motions?\b/.test(haystack)) {
-    return {
-      headline: "Make repeated work inspectable",
-      supporting: "Templates help when teams can improve them",
-      items: evidenceFromTexts([
-        ["Inspect the motion", "inspect"],
-        ["Improve the template", "improve"],
-        ["Assign the owner", "assign"]
-      ], source),
-      mode: "workflow"
-    };
-  }
-
-  if (/\bpost-close|after close|diligence\b/.test(haystack) && /\bowner context|execution|risks?\b/.test(haystack)) {
-    return {
-      headline: "Do not lose the why",
-      supporting: "The operating team needs usable deal context",
-      items: evidenceFromTexts([
-        ["Decisions", "Decisions"],
-        ["Risks", "risks"],
-        ["Owner context", "owner context"]
-      ], source),
-      mode: "relationship"
-    };
-  }
-
-  if (/\banother workflow tool|another destination\b/.test(haystack)) {
-    return {
-      headline: "Don't make teams work twice",
-      supporting: "Start where the work already lives",
-      items: evidenceFromTexts([
-        ["Keep familiar tools", "not replace every tool"],
-        ["Capture repeated work", "codify existing work"],
-        ["Remove extra updates", "another destination"]
-      ], source),
-      mode: "principles"
-    };
-  }
-
-  if (/\boperating cadence|handoff rules|diligence follow-ups|status rituals\b/.test(haystack)) {
-    return {
-      headline: "Stop rebuilding deal cadence",
-      supporting: "Keep the rules with recurring work",
-      items: evidenceFromTexts([
-        ["Handoff rules", "handoff rules"],
-        ["Diligence follow-ups", "diligence follow-ups"],
-        ["Status rituals", "status rituals"]
-      ], source),
-      mode: "workflow"
-    };
-  }
-
-  return null;
-}
-
-function evidenceFromTexts(items: Array<[string, string]>, source: string): VisualEvidenceItem[] {
-  return items.map(([text, excerptHint]) => ({
-    text,
-    source_excerpt: findSourceExcerpt(source, excerptHint)
-  }));
-}
-
-function findSourceExcerpt(source: string, hint: string): string {
-  const normalizedHint = normalize(hint);
-  const sentence = source.split(/(?<=[.!?])\s+/).find((item) => normalize(item).includes(normalizedHint));
-  if (sentence) return sentence.replace(/[.!?]+$/, "").trim();
-  const phrase = source.split(/[,;:]\s+|\s+\b(?:but|while)\b\s+/i).find((item) => normalize(item).includes(normalizedHint));
-  return (phrase ?? source).replace(/[.!?]+$/, "").trim();
 }
 
 function firstDistinctVisualLine(
@@ -430,17 +310,10 @@ function visualTextCandidates(value: unknown, maxChars: number, maxWords: number
   const cleaned = cleanVisualLine(value);
   if (!cleaned) return [];
 
-  const lower = cleaned.toLowerCase();
-  const knownCandidates = conceptPhrases.filter((item) => item.pattern.test(lower)).map((item) => item.text);
   const rawCandidates = [
-    ...knownCandidates,
     phraseFromKnownShape(cleaned),
-    ...(knownCandidates.length > 0
-      ? []
-      : [
-          withinVisualLimit(cleaned, maxChars, maxWords) ? cleaned : "",
-          keywordPhrase(cleaned, maxWords, maxChars)
-        ])
+    withinVisualLimit(cleaned, maxChars, maxWords) ? cleaned : "",
+    keywordPhrase(cleaned, maxWords, maxChars)
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   return unique(rawCandidates.map((candidate) => {
@@ -452,10 +325,6 @@ function visualTextCandidates(value: unknown, maxChars: number, maxWords: number
 }
 
 function phraseFromKnownShape(value: string): string | null {
-  const lower = value.toLowerCase();
-  const known = conceptPhrases.find((item) => item.pattern.test(lower));
-  if (known) return known.text;
-
   const instead = value.match(/(.+?)\s+instead of\s+(.+)/i);
   if (instead) return `${keyPhrase(instead[2], 3)} before ${keyPhrase(instead[1], 3)}`;
 
@@ -540,7 +409,7 @@ function wordCount(value: string): number {
 
 function simplifyVisualPhrase(value: string): string {
   return cleanVisualLine(value)
-    .replace(/^(the memo argues that|operators described|prospects worry that|internal discussion noted that|the product team shipped|deal teams keep)\s+/i, "")
+    .replace(/^(the source says that|company notes show that|the update says that|the team reported that)\s+/i, "")
     .replace(/\bby themselves\b/gi, "")
     .replace(/\bitself\b/gi, "")
     .replace(/\s+/g, " ")
@@ -660,49 +529,14 @@ function isContentMode(value: unknown): value is VisualContentMode {
   return ["thesis", "contrast", "evidence", "principles", "workflow", "relationship"].includes(String(value));
 }
 
-const conceptPhrases = [
-  { pattern: /\bprocess memory\b.*\bagents?\b|\bagents?\b.*\bprocess memory\b/, text: "Teach the agent your process" },
-  { pattern: /\buseful wedge\b.*\bdecisions?\b|\bfirm\b.*\bmakes decisions?\b|\bdocumenting how\b.*\bdecisions?\b/, text: "Map how decisions happen" },
-  { pattern: /\bnew systems?\b.*\banother destination\b|\banother destination\b/, text: "Don't make teams work twice" },
-  { pattern: /\bcodify existing work\b|\bexisting work\b.*\blightweight operating system\b/, text: "Capture repeated work" },
-  { pattern: /\blightweight operating system\b/, text: "Make the work repeatable" },
-  { pattern: /\breplace every tool\b|\breplace tool\b/, text: "Keep the tools teams use" },
-  { pattern: /\brepeatable work\b.*\bmodel\b/, text: "Keep handoffs with the work" },
-  { pattern: /\bdecision trail\b/, text: "Show the decision trail" },
-  { pattern: /\bopen risks?\b/, text: "Keep open risks visible" },
-  { pattern: /\bsurvive handoffs?\b|\bsurvives? in\b/, text: "Context should survive handoffs" },
-  { pattern: /\bowner context\b/, text: "Keep owner context intact" },
-  { pattern: /\boperating cadence\b|\bsame cadence\b/, text: "Stop rebuilding deal cadence" },
-  { pattern: /\bhandoff rules?\b/, text: "Write down the handoff rules" },
-  { pattern: /\bdiligence follow-ups?\b/, text: "Keep diligence follow-ups visible" },
-  { pattern: /\bstatus rituals?\b/, text: "Status rituals" },
-  { pattern: /\bworkflow templates?\b|\brecurring deal motions?\b/, text: "Make repeat work reusable" },
-  { pattern: /\binspect\b.*\bassign\b|\bassign\b.*\binspect\b/, text: "Make repeated work inspectable" },
-  { pattern: /\brepeated work\b.*\binspect\b|\binspect\b.*\brepeated work\b/, text: "Make repeated work inspectable" },
-  { pattern: /\bcompetitor tools?\b.*\bdashboards?\b|\bdashboards?\b.*\bemphasize\b/, text: "Visibility is not ownership" },
-  { pattern: /\bdashboards?\b.*\bvisibility\b|\bvisibility\b.*\bdashboards?\b/, text: "Dashboards show work" },
-  { pattern: /\bclear ownership\b|\bownership\b/, text: "Ownership needs a next move" },
-  { pattern: /\bpost-close execution\b|\bpost-close\b/, text: "Do not lose the why" },
-  { pattern: /\brarely survive\b/, text: "Keep the why intact" },
-  { pattern: /\bcaptured during the deal\b|\bdecisions, risks\b/, text: "Keep deal context usable" }
-];
 const preferredTerms = [
-  "decision trail",
-  "open risks",
-  "owner context",
-  "firm decisions",
-  "deal cadence",
-  "handoff rules",
-  "diligence follow-ups",
-  "status rituals",
-  "workflow templates",
-  "deal motions",
-  "clear ownership",
-  "repeatable follow-through",
-  "post-close execution",
-  "company notes",
-  "decision trail",
-  "follow-through"
+  "customer outcome",
+  "product update",
+  "company lesson",
+  "market signal",
+  "public source",
+  "customer feedback",
+  "next step"
 ];
 const allowedCapitalized = new Set(["Splay", "AI", "CRM", "POV", "From", "Work", "Take", "Deal", "Context"]);
 const roboticPublicPhrases = INTERNAL_JARGON_PHRASES;

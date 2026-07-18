@@ -31,6 +31,7 @@ export interface SplayPost {
   created_at: string;
   scheduled_for: string | null;
   media_url: string | null;
+  animation_media_url?: string | null;
   alt_text: string;
   format_type?: string;
   image_provider?: string;
@@ -48,7 +49,7 @@ export interface SplayPost {
 
 export interface Job {
   id: string;
-  kind: "generate" | "campaign-generate" | "publish-approved" | "metrics-collect" | "metrics-score" | "feedback-generate";
+  kind: "generate" | "campaign-generate" | "animate-background" | "publish-approved" | "metrics-collect" | "metrics-score" | "feedback-generate";
   status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
   created_at: string;
   output: string;
@@ -100,6 +101,24 @@ export interface BrandKit {
   logo_url: string | null;
 }
 
+export interface CompanyContextItem {
+  id: string;
+  title: string;
+  kind: string;
+  summary: string;
+  source?: string;
+  date?: string;
+  tags: string[];
+  public_safe: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CreateCompanyContextInput = Pick<CompanyContextItem, "title" | "kind" | "summary" | "tags" | "public_safe"> & {
+  source?: string;
+  date?: string;
+};
+
 export type CreateCampaignInput = Pick<Campaign, "name" | "brief" | "themes" | "platforms" | "start_at" | "timezone" | "interval_weeks" | "occurrences" | "creative">;
 
 export interface Health {
@@ -108,9 +127,15 @@ export interface Health {
   version: string;
   authentication: "bearer" | "local-only";
   generation: {
-    gbrain: string;
+    brain: string;
     text: string;
     image: string;
+    media?: {
+      provider: string;
+      configured: boolean;
+      image_model: string;
+      video_model: string;
+    };
   };
   publishing: {
     buffer_configured: boolean;

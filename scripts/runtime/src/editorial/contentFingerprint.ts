@@ -122,10 +122,10 @@ function canonicalJob(text: string): string {
   const lower = text.toLowerCase();
   if (/follow-up/.test(lower)) return "prepare and send the next follow-up";
   if (/brief|pre-call|agenda/.test(lower)) return "prepare the team for a call";
-  if (/tracker|crm|excel|buyer log|record/.test(lower)) return "keep the deal record current";
+  if (/tracker|crm|excel|buyer log|record/.test(lower)) return "keep the record current";
   if (/handoff|next owner|post-close/.test(lower)) return "hand work to the next owner";
   if (/assign|owner|accountab/.test(lower)) return "make the next step owned";
-  return "move the next deal step";
+  return "move the next step";
 }
 
 function canonicalArtifact(text: string): string {
@@ -140,7 +140,7 @@ function canonicalArtifact(text: string): string {
     [/dashboard/, "dashboard"],
     [/workflow template|template/, "workflow template"]
   ];
-  return matches.find(([pattern]) => pattern.test(lower))?.[1] ?? "deal record";
+  return matches.find(([pattern]) => pattern.test(lower))?.[1] ?? "work record";
 }
 
 function canonicalThesis(text: string): string {
@@ -165,9 +165,9 @@ function canonicalCapability(text: string): string {
 }
 
 function inferAudience(text: string): string {
-  if (/banker|investment bank|buyer outreach|sell-side/.test(text.toLowerCase())) return "investment banking deal teams";
-  if (/private equity|sponsor|post-close|diligence/.test(text.toLowerCase())) return "private equity deal teams";
-  return "deal-team operators";
+  if (/customer|client|buyer|user/.test(text.toLowerCase())) return "customers and prospective customers";
+  if (/founder|operator|leader/.test(text.toLowerCase())) return "founders and operators";
+  return "the configured company audience";
 }
 
 function inferProofType(text: string): string {

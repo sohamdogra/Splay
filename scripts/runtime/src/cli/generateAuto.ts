@@ -1,5 +1,5 @@
 import { loadEnv } from "../config/loadEnv.ts";
-import { GBrainClient } from "../gbrain/gbrainClient.ts";
+import { CompanyBrainClient } from "../brain/companyBrainClient.ts";
 import { discoverTopicIdeas } from "../agents/topicDiscoveryAgent.ts";
 import { generatePostsForIdea, postToRecentReference } from "../agents/postGenerationAgent.ts";
 import { attachImages } from "../agents/imagePromptAgent.ts";
@@ -15,8 +15,11 @@ loadEnv();
 
 export async function runGenerateAuto(): Promise<PostPack> {
   const brand = brandProfileFromKit(await loadBrandKit());
-  const gbrain = new GBrainClient();
-  const { ideas, themes } = await discoverTopicIdeas(gbrain, brand);
+  const brain = new CompanyBrainClient();
+  const { ideas, themes } = await discoverTopicIdeas(brain, brand);
+  if (ideas.length === 0) {
+    throw new Error("The company brain has no public-safe context. Add context in Brand & brain before using auto generation.");
+  }
 
   const drafts: PostPack["posts"] = [];
   for (const idea of ideas) {

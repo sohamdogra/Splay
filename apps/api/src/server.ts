@@ -35,6 +35,12 @@ import {
   saveBrandKit,
   updateCampaign
 } from "../../../scripts/runtime/src/storage/campaignStore.ts";
+import {
+  addCompanyContext,
+  listCompanyContext,
+  listPublicCompanyContext,
+  removeCompanyContext
+} from "../../../scripts/runtime/src/storage/companyBrainStore.ts";
 import type {
   BrandKit,
   Campaign,
@@ -218,6 +224,7 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         if (new Date(campaign.start_at).getTime() <= Date.now()) {
           throw new HttpError(422, "Campaign start time must still be in the future.", "campaign_start_elapsed");
         }
+        await assertGenerationSetup(true);
         const script = path.join(CORE_ROOT, "src", "cli", "generateCampaign.ts");
         const job = jobs.enqueue({
           kind: "campaign-generate",
@@ -227,7 +234,7 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
           env: campaign.creative ? {
             SOCIAL_AGENT_CREATIVE_MODE: "1",
             SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST: "1",
-            SOCIAL_AGENT_CREATIVE_IMAGE_MODE: "gpt-canva"
+            SOCIAL_AGENT_CREATIVE_IMAGE_MODE: "tokenmart-canva"
           } : undefined,
           metadata: { campaign_id: campaign.id, occurrences: campaign.occurrences }
         });
@@ -246,6 +253,46 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         return sendJson(request, response, 200, { data: kit }, requestId);
       }
 
+      if (request.method === "GET" && pathname === `${API_PREFIX}/brain/context`) {
+        const items = await listCompanyContext();
+        return sendJson(request, response, 200, {
+          data: items,
+          meta: {
+            total: items.length,
+            public_safe: items.filter((item) => item.public_safe).length
+          }
+        }, requestId);
+      }
+
+      if (request.method === "POST" && pathname === `${API_PREFIX}/brain/context`) {
+        refuseWhileJobIsActive(jobs);
+        const body = await readJson(request);
+        const item = await runMutation(() => addCompanyContext({
+          title: requiredString(body.title, "title", 160),
+          kind: requiredString(body.kind, "kind", 80),
+          summary: requiredString(body.summary, "summary", 4_000),
+          source: optionalString(body.source, "source", 500),
+          date: optionalDate(body.date, "date"),
+          tags: body.tags === undefined ? [] : requiredStringArray(body.tags, "tags", 20, 80),
+          public_safe: optionalBoolean(body.public_safe, "public_safe") ?? false
+        }));
+        return sendJson(request, response, 201, { data: item }, requestId);
+      }
+
+      const brainContextMatch = pathname.match(new RegExp(`^${API_PREFIX}/brain/context/([^/]+)$`));
+      if (request.method === "DELETE" && brainContextMatch) {
+        refuseWhileJobIsActive(jobs);
+        const id = decodeURIComponent(brainContextMatch[1]);
+        await runMutation(async () => {
+          try {
+            await removeCompanyContext(id);
+          } catch (error) {
+            throw coreMutationError(error);
+          }
+        });
+        return sendNoContent(request, response);
+      }
+
       if (request.method === "GET" && pathname === `${API_PREFIX}/jobs`) {
         return sendJson(request, response, 200, { data: jobs.list() }, requestId);
       }
@@ -262,6 +309,7 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         const mode = body.mode === undefined ? "auto" : requiredEnum(body.mode, "mode", ["auto", "topic"] as const);
         const creative = optionalBoolean(body.creative, "creative") || false;
         const topic = mode === "topic" ? requiredString(body.topic, "topic", 500) : undefined;
+        await assertGenerationSetup(mode === "auto");
         const script = path.join(CORE_ROOT, "src", "cli", mode === "auto" ? "generateAuto.ts" : "generate.ts");
         const command: JobCommand = {
           kind: "generate",
@@ -271,11 +319,36 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
           env: creative ? {
             SOCIAL_AGENT_CREATIVE_MODE: "1",
             SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST: "1",
-            SOCIAL_AGENT_CREATIVE_IMAGE_MODE: "gpt-canva"
+            SOCIAL_AGENT_CREATIVE_IMAGE_MODE: "tokenmart-canva"
           } : undefined,
           metadata: { mode, creative, ...(topic ? { topic } : {}) }
         };
         const job = jobs.enqueue(command);
+        return sendJson(request, response, 202, { data: job }, requestId);
+      }
+
+      if (request.method === "POST" && pathname === `${API_PREFIX}/jobs/animate-background`) {
+        const body = await readJson(request);
+        if (!process.env.TOKENMART_API_KEY?.trim()) {
+          throw new HttpError(503, "TOKENMART_API_KEY is required for background animation.", "tokenmart_not_configured");
+        }
+        const postId = requiredString(body.post_id, "post_id", 300);
+        const duration = body.duration === undefined ? undefined : requiredInteger(body.duration, "duration", 2, 15);
+        const resolution = body.resolution === undefined
+          ? undefined
+          : requiredEnum(body.resolution, "resolution", ["480p", "720p", "1080p"] as const);
+        const background = optionalString(body.background, "background", 4_000);
+        const prompt = optionalString(body.prompt, "prompt", 4_000);
+        const args = ["--post-id", postId];
+        if (duration !== undefined) args.push("--duration", String(duration));
+        if (resolution) args.push("--resolution", resolution);
+        if (background) args.push("--background", background);
+        if (prompt) args.push("--prompt", prompt);
+        const job = jobs.enqueue({
+          ...coreCommand("animate-background", "animateBackground.ts"),
+          args: ["--experimental-strip-types", path.join(CORE_ROOT, "src", "cli", "animateBackground.ts"), ...args],
+          metadata: { post_id: postId, duration: duration ?? 5, resolution: resolution ?? "720p" }
+        });
         return sendJson(request, response, 202, { data: job }, requestId);
       }
 
@@ -386,10 +459,21 @@ function refuseWhileJobIsActive(jobs: JobManager): void {
   }
 }
 
+async function assertGenerationSetup(requiresContext: boolean): Promise<void> {
+  const kit = await loadBrandKit();
+  if (kit.version < 1) {
+    throw new HttpError(409, "Save the brand kit before generating posts.", "setup_required");
+  }
+  if (requiresContext && (await listPublicCompanyContext()).length === 0) {
+    throw new HttpError(409, "Add at least one company-brain item approved for public content before auto generation.", "brain_context_required");
+  }
+}
+
 function toApiPost(post: GeneratedPost): Record<string, unknown> {
   return {
     ...post,
     media_url: mediaUrl(post.image_url),
+    animation_media_url: mediaUrl(post.animation_background_url || ""),
     links: {
       self: `${API_PREFIX}/posts/${encodeURIComponent(post.id)}`,
       decision: `${API_PREFIX}/posts/${encodeURIComponent(post.id)}/decisions`,
@@ -407,6 +491,13 @@ function toApiCampaign(campaign: Campaign): Record<string, unknown> {
       generate: `${API_PREFIX}/campaigns/${encodeURIComponent(campaign.id)}/generate`
     }
   };
+}
+
+function requiredInteger(value: unknown, field: string, minimum: number, maximum: number): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    throw new HttpError(400, `${field} must be an integer between ${minimum} and ${maximum}.`, "invalid_request");
+  }
+  return value;
 }
 
 function mediaUrl(imageUrl: string): string | null {
@@ -485,6 +576,14 @@ function requiredString(value: unknown, field: string, maxLength: number): strin
 function optionalString(value: unknown, field: string, maxLength: number): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   return requiredString(value, field, maxLength);
+}
+
+function optionalDate(value: unknown, field: string): string | undefined {
+  const text = optionalString(value, field, 100);
+  if (!text) return undefined;
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) throw new HttpError(400, `${field} must be a valid date.`, "invalid_request");
+  return date.toISOString();
 }
 
 function nullableString(value: unknown, field: string, maxLength: number): string | null {

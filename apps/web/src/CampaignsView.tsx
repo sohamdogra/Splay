@@ -69,9 +69,9 @@ export function CampaignsView({ campaigns, busy, onCreate, onGenerate, onStatus,
         <form className="campaign-builder" onSubmit={submit}>
           <div className="builder-intro"><span className="eyebrow">Campaign direction</span><h2>What should this series own?</h2></div>
           <div className="form-grid">
-            <label className="field full"><span>Campaign name</span><input required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} placeholder="Six weeks of source-backed diligence" /></label>
-            <label className="field full"><span>Core brief</span><textarea required maxLength={500} value={brief} onChange={(event) => setBrief(event.target.value)} placeholder="Show operators how deal context can stay traceable across handoffs, trackers, and meeting prep." /></label>
-            <label className="field full"><span>Weekly themes <small>one per line, recycled if needed</small></span><textarea className="short" value={themes} onChange={(event) => setThemes(event.target.value)} placeholder={"Handoffs without reconstruction\nBuyer tracker follow-through\nMeeting prep from source material"} /></label>
+            <label className="field full"><span>Campaign name</span><input required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} placeholder="Six weeks of customer stories" /></label>
+            <label className="field full"><span>Core brief</span><textarea required maxLength={500} value={brief} onChange={(event) => setBrief(event.target.value)} placeholder="Explain one useful company insight each week using approved source context." /></label>
+            <label className="field full"><span>Weekly themes <small>one per line, recycled if needed</small></span><textarea className="short" value={themes} onChange={(event) => setThemes(event.target.value)} placeholder={"Customer outcomes\nProduct lessons\nFounder perspective"} /></label>
             <div className="field"><span>Platforms</span><div className="platform-selector">
               {(["linkedin", "x"] as Platform[]).map((platform) => <button type="button" key={platform} className={platforms[platform] ? "selected" : ""} onClick={() => setPlatforms((value) => ({ ...value, [platform]: !value[platform] }))}>{platform === "linkedin" ? "in  LinkedIn" : "𝕏  X"}</button>)}
             </div></div>

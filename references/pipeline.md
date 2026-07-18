@@ -6,9 +6,10 @@ The application API lives in `apps/api` and the domain core lives in `scripts/ru
 
 ## Provider Model
 
-- `ContextProvider`: GBrain HTTP bridge, credential-free local stdio bridge, then an explicitly configured local JSON source.
+- `ContextProvider`: project-local `output/company-brain.json`. Only records explicitly marked `public_safe` are returned to generation.
 - `TextProvider`: OpenAI or Anthropic when configured, then deterministic local templates.
-- `ImageProvider`: optional generated background artwork plus deterministic official-logo/text composition. Full model-generated final artwork is legacy/manual only.
+- `ImageProvider`: TokenMart Seedream (`dola-seedream-5-0-pro-260628`) for optional concepts/background plates, followed by deterministic official-logo/text composition. Full model-generated final artwork is legacy/manual only.
+- `AnimationProvider`: TokenMart Seedance (`dreamina-seedance-2-0-260128`) for asynchronous background-only animation. Raw animation is exposed for frontend review but is not selected by the Buffer publisher as final media.
 - `PublishMode`: review by default. The application records an explicit approval before Buffer queueing.
 
 Inspect provider readiness with:
@@ -28,13 +29,13 @@ npm run import-drafts -- --input /path/to/drafts.json
 ```json
 {
   "generated_at": "2026-07-08T12:00:00.000Z",
-  "discovered_themes": ["deal teams rebuild the same tracker every week"],
+  "discovered_themes": ["customer onboarding lessons"],
   "posts": [
     {
       "platform": "linkedin",
-      "topic": "Stop rebuilding the buyer tracker",
+      "topic": "What customers value during onboarding",
       "post_text": "LinkedIn copy...",
-      "hashtags": ["PrivateEquity", "InvestmentBanking", "DealOps"],
+      "hashtags": ["CustomerExperience", "Onboarding", "ProductStrategy"],
       "linkedin_mentions": [
         {
           "aliases": ["Jane", "Jane Smith"],
@@ -47,51 +48,51 @@ npm run import-drafts -- --input /path/to/drafts.json
         }
       ],
       "image_copy": {
-        "headline": "Stop rebuilding the tracker",
-        "support": "The update was already in the thread"
+        "headline": "Start with customer clarity",
+        "support": "One onboarding lesson changed the product"
       },
       "scheduled_for": "2026-07-09T16:00:00.000Z",
       "source_context": {
         "summary": "Public-safe source summary.",
-        "gbrain_references": ["exact/slug-as-returned-by-gbrain"],
+        "gbrain_references": ["brain/project-local-record-id"],
         "why_now": "Why this is timely."
       },
       "editorial_context": {
         "claim": "The factual claim supported by the source.",
-        "actor": "deal-team associate",
-        "concrete_object": "buyer tracker",
-        "observed_behavior": "Buyer replies arrive in email before the tracker changes.",
-        "audience_pain": "The associate has to reconstruct the tracker before outreach moves.",
+        "actor": "customer",
+        "concrete_object": "onboarding workflow",
+        "observed_behavior": "Customers ask for a clear first success milestone.",
+        "audience_pain": "New customers cannot tell which first step matters most.",
         "evidence": [{
-          "source_slug": "exact/slug-as-returned-by-gbrain",
+          "source_slug": "brain/project-local-record-id",
           "excerpt": "Exact public-safe supporting excerpt.",
           "source_type": "customer",
           "observed_at": "2026-07-09"
         }],
-        "public_safe_claim": "Buyer replies reach email before the tracker changes.",
+        "public_safe_claim": "Customers value a clear first success milestone.",
         "sensitivity": "public",
         "confidence": "direct"
       },
       "post_intent": {
-        "audience_segment": "investment banking deal teams",
+        "audience_segment": "new and prospective customers",
         "content_pillar": "workflow_observation",
         "objective": "education",
-        "desired_reader_response": "Recognize the update gap in their own process.",
+        "desired_reader_response": "Recognize why early product clarity matters.",
         "product_role": "supporting"
       }
     },
     {
       "platform": "x",
-      "topic": "Stop rebuilding the buyer tracker",
+      "topic": "What customers value during onboarding",
       "post_text": "X copy...",
       "hashtags": [],
       "image_copy": {
-        "headline": "The inbox already knows",
-        "support": "One thread. One tracker. One next step."
+        "headline": "Clarity earns early trust",
+        "support": "Show customers the first useful outcome"
       },
       "source_context": {
         "summary": "Public-safe source summary.",
-        "gbrain_references": ["exact/slug-as-returned-by-gbrain"],
+        "gbrain_references": ["brain/project-local-record-id"],
         "why_now": "Why this is timely."
       }
     }
@@ -100,6 +101,8 @@ npm run import-drafts -- --input /path/to/drafts.json
 ```
 
 The importer preserves the original `PostPack` fields and adds optional `editorial_context`, `post_intent`, `content_fingerprint`, `editorial_evaluation`, `editorial_candidates`, `review_history`, and `visual_treatment` metadata. Legacy packs remain readable. Missing structured evidence is converted to an inferred packet and warned in review.
+
+`source_context.gbrain_references` is a legacy field name retained for post-pack compatibility. New values come only from the project-local company brain and do not connect to an external GBrain service.
 
 `scheduled_for` is optional. When present, it must be an ISO 8601 timestamp with an explicit timezone. The frontend should convert user language such as "tomorrow at 9am PT" into an explicit timestamp before import or scheduling.
 
@@ -188,6 +191,26 @@ This updates `image_provider` to `codex-imagegen`, writes PNG/SVG/HTML compatibi
 
 For a strictly read-only review, inspect the existing `post-pack.json` and `latest-preview.html` directly. The `review` command refreshes `latest-preview.html`, so do not run it when the user explicitly prohibits file changes.
 
+## TokenMart background animation
+
+After a post has a generated background plate, start a background-only Seedance task through the API:
+
+```bash
+curl -X POST http://127.0.0.1:4173/api/v1/jobs/animate-background \
+  -H 'Content-Type: application/json' \
+  -d '{"post_id":"post-id-1","duration":5,"resolution":"720p"}'
+```
+
+Or use the operator command:
+
+```bash
+npm run animate-background -- --post-id post-id-1 --duration 5 --resolution 720p
+```
+
+For a local plate, this workflow first uploads the image to Convex and passes its public HTTPS URL to TokenMart as the Seedance first frame. The completed raw background is saved as `videos/<post-id>-background.mp4`, recorded in the post as `animation_background_url`, and returned to a frontend as `animation_media_url`.
+
+The Seedance prompt explicitly excludes words, logos, CTA text, pricing, and disclaimers. Apply those exact layers afterward with the deterministic HTML/canvas renderer, Canva, or Figma. Until that composition step exists for video, Buffer continues to use the visually validated static `image_url`; the raw animation cannot be published accidentally.
+
 ## Output Artifacts
 
 The runtime continues to write:
@@ -196,6 +219,7 @@ The runtime continues to write:
 - `drafts/*.json`
 - `images/*.png`
 - `images/*.svg`
+- `videos/*-background.mp4` when Seedance animation is requested
 - `canva-requests.json` only for compatibility compositor runs
 - `canva-imports/*.html` only for compatibility compositor runs
 - `visual-qa.json`

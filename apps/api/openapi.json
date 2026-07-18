@@ -32,7 +32,7 @@
         "required": ["id", "kind", "status", "created_at", "output"],
         "properties": {
           "id": { "type": "string", "format": "uuid" },
-          "kind": { "type": "string", "enum": ["generate", "campaign-generate", "publish-approved", "metrics-collect", "metrics-score", "feedback-generate"] },
+          "kind": { "type": "string", "enum": ["generate", "campaign-generate", "animate-background", "publish-approved", "metrics-collect", "metrics-score", "feedback-generate"] },
           "status": { "type": "string", "enum": ["queued", "running", "succeeded", "failed", "cancelled"] },
           "metadata": { "type": "object" },
           "created_at": { "type": "string", "format": "date-time" },
@@ -75,6 +75,22 @@
           "colors": { "type": "object" },
           "typography": { "type": "object" },
           "logo_url": { "type": ["string", "null"] }
+        }
+      },
+      "CompanyContextItem": {
+        "type": "object",
+        "required": ["id", "title", "kind", "summary", "tags", "public_safe", "created_at", "updated_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string", "maxLength": 160 },
+          "kind": { "type": "string", "maxLength": 80 },
+          "summary": { "type": "string", "maxLength": 4000 },
+          "source": { "type": "string", "maxLength": 500 },
+          "date": { "type": "string", "format": "date-time" },
+          "tags": { "type": "array", "maxItems": 20, "items": { "type": "string" } },
+          "public_safe": { "type": "boolean", "default": false },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
         }
       }
     }
@@ -177,6 +193,22 @@
       "get": { "summary": "Read the active brand kit", "responses": { "200": { "description": "Brand kit" } } },
       "put": { "summary": "Save a new version of the brand kit", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrandKit" } } } }, "responses": { "200": { "description": "Saved brand kit" } } }
     },
+    "/api/v1/brain/context": {
+      "get": { "summary": "List project-local company context", "responses": { "200": { "description": "Company context collection" } } },
+      "post": {
+        "summary": "Add a project-local company context record",
+        "description": "Records are excluded from generation unless public_safe is explicitly true.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompanyContextItem" } } } },
+        "responses": { "201": { "description": "Context record created" }, "400": { "description": "Invalid context record" } }
+      }
+    },
+    "/api/v1/brain/context/{id}": {
+      "delete": {
+        "summary": "Delete a company context record",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "Context record deleted" }, "404": { "description": "Not found" } }
+      }
+    },
     "/api/v1/jobs": {
       "get": {
         "summary": "List recent background jobs",
@@ -230,6 +262,32 @@
           }
         },
         "responses": { "202": { "description": "Queued publishing job" }, "503": { "description": "Publishing not configured" } }
+      }
+    },
+    "/api/v1/jobs/animate-background": {
+      "post": {
+        "summary": "Generate a background-only Seedance animation for one post",
+        "description": "Uses the raw generated background plate. Exact logo, typography, CTA, pricing, and disclaimers must be composited afterward.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["post_id"],
+                "properties": {
+                  "post_id": { "type": "string", "maxLength": 300 },
+                  "background": { "type": "string", "maxLength": 4000 },
+                  "prompt": { "type": "string", "maxLength": 4000 },
+                  "duration": { "type": "integer", "minimum": 2, "maximum": 15, "default": 5 },
+                  "resolution": { "type": "string", "enum": ["480p", "720p", "1080p"], "default": "720p" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "202": { "description": "Queued animation job" }, "503": { "description": "TokenMart not configured" } }
       }
     },
     "/api/v1/jobs/metrics-collect": {

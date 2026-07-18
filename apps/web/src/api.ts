@@ -1,4 +1,4 @@
-import type { ApiEnvelope, BrandKit, Campaign, CreateCampaignInput, Decision, Health, Job, ReviewReason, SplayPost } from "./types";
+import type { ApiEnvelope, BrandKit, Campaign, CompanyContextItem, CreateCampaignInput, CreateCompanyContextInput, Decision, Health, Job, ReviewReason, SplayPost } from "./types";
 
 const API_BASE = (import.meta.env.VITE_SPLAY_API_URL || "").replace(/\/$/, "");
 let runtimeToken = sessionStorage.getItem("splay_api_token") || import.meta.env.VITE_SPLAY_API_TOKEN || "";
@@ -90,6 +90,23 @@ export async function saveBrandKit(kit: BrandKit): Promise<BrandKit> {
     body: JSON.stringify(payload)
   });
   return response.data;
+}
+
+export async function getCompanyContext(): Promise<CompanyContextItem[]> {
+  const response = await request<ApiEnvelope<CompanyContextItem[]>>("/api/v1/brain/context");
+  return response.data;
+}
+
+export async function addCompanyContext(input: CreateCompanyContextInput): Promise<CompanyContextItem> {
+  const response = await request<ApiEnvelope<CompanyContextItem>>("/api/v1/brain/context", {
+    method: "POST",
+    body: JSON.stringify(input)
+  });
+  return response.data;
+}
+
+export async function removeCompanyContext(id: string): Promise<void> {
+  await request<unknown>(`/api/v1/brain/context/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function getJob(id: string): Promise<Job> {

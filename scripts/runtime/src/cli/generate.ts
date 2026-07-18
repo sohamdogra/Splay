@@ -1,5 +1,5 @@
 import { loadEnv } from "../config/loadEnv.ts";
-import { GBrainClient } from "../gbrain/gbrainClient.ts";
+import { CompanyBrainClient } from "../brain/companyBrainClient.ts";
 import { buildTopicFromManualInput } from "../agents/topicDiscoveryAgent.ts";
 import { generatePostsForIdea } from "../agents/postGenerationAgent.ts";
 import { attachImages } from "../agents/imagePromptAgent.ts";
@@ -19,8 +19,8 @@ if (!topic) {
 }
 
 const brand = brandProfileFromKit(await loadBrandKit());
-const gbrain = new GBrainClient();
-const contexts = await gbrain.searchCompanyContext(topic);
+const brain = new CompanyBrainClient();
+const contexts = await brain.searchCompanyContext(topic);
 const idea = await buildTopicFromManualInput(topic, contexts, brand);
 const drafts = await generatePostsForIdea(idea, brand);
 const posts = await attachImages(drafts);

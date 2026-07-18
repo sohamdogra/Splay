@@ -20,6 +20,7 @@
     "import-drafts": "node --experimental-strip-types scripts/runtime/src/cli/importCodexDrafts.ts",
     "attach-final-images": "node --experimental-strip-types scripts/runtime/src/cli/attachFinalImages.ts",
     "attach-background-images": "node --experimental-strip-types scripts/runtime/src/cli/attachCodexImages.ts",
+    "animate-background": "node --experimental-strip-types scripts/runtime/src/cli/animateBackground.ts",
     "replace-scheduled-images": "node --experimental-strip-types scripts/runtime/src/cli/replaceScheduledImages.ts",
     "visual:qa": "node --experimental-strip-types scripts/runtime/src/cli/visualQa.ts",
     "visual:contact-sheet": "node --experimental-strip-types scripts/runtime/src/cli/visualContactSheet.ts",
@@ -37,7 +38,8 @@
     "check:api": "node --experimental-strip-types --check apps/api/src/server.ts && node --experimental-strip-types --check apps/api/src/jobs.ts",
     "check:core": "npm --prefix scripts/runtime run check",
     "check:convex": "convex typecheck",
-    "check": "npm run check:api && npm run check:core && npm run check:convex",
+    "check:web": "npm --prefix apps/web run build",
+    "check": "npm run check:api && npm run check:core && npm run check:convex && npm run check:web",
     "db:generate": "npm --prefix scripts/runtime run db:generate",
     "db:migrate": "npm --prefix scripts/runtime run db:migrate"
   },

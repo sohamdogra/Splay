@@ -1,12 +1,26 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Check, Palette, Type } from "lucide-react";
-import type { BrandKit } from "./types";
+import { Check, Database, Palette, Trash2, Type } from "lucide-react";
+import type { BrandKit, CompanyContextItem, CreateCompanyContextInput } from "./types";
 
-export function BrandKitView({ brandKit, onSave }: { brandKit: BrandKit | null; onSave: (kit: BrandKit) => Promise<void> }) {
+export function BrandKitView({ brandKit, contextItems = [], onSave, onAddContext, onRemoveContext }: {
+  brandKit: BrandKit | null;
+  contextItems?: CompanyContextItem[];
+  onSave: (kit: BrandKit) => Promise<void>;
+  onAddContext?: (input: CreateCompanyContextInput) => Promise<void>;
+  onRemoveContext?: (id: string) => Promise<void>;
+}) {
   const [kit, setKit] = useState<BrandKit | null>(brandKit);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [contextTitle, setContextTitle] = useState("");
+  const [contextKind, setContextKind] = useState("company");
+  const [contextSummary, setContextSummary] = useState("");
+  const [contextSource, setContextSource] = useState("");
+  const [contextTags, setContextTags] = useState("");
+  const [contextDate, setContextDate] = useState("");
+  const [contextPublicSafe, setContextPublicSafe] = useState(false);
+  const [contextSaving, setContextSaving] = useState(false);
   useEffect(() => setKit(brandKit), [brandKit]);
   if (!kit) return <div className="loading-overlay"><span className="spinner" /> Loading brand kit…</div>;
 
@@ -18,10 +32,31 @@ export function BrandKitView({ brandKit, onSave }: { brandKit: BrandKit | null; 
   };
   const setColor = (key: keyof BrandKit["colors"], value: string) => setKit({ ...kit, colors: { ...kit.colors, [key]: value } });
   const setType = <K extends keyof BrandKit["typography"]>(key: K, value: BrandKit["typography"][K]) => setKit({ ...kit, typography: { ...kit.typography, [key]: value } });
+  const addContext = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!onAddContext) return;
+    setContextSaving(true); setError("");
+    try {
+      await onAddContext({
+        title: contextTitle,
+        kind: contextKind,
+        summary: contextSummary,
+        source: contextSource || undefined,
+        date: contextDate || undefined,
+        tags: contextTags.split(",").map((tag) => tag.trim()).filter(Boolean),
+        public_safe: contextPublicSafe
+      });
+      setContextTitle(""); setContextSummary(""); setContextSource(""); setContextTags(""); setContextDate(""); setContextPublicSafe(false);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not add company context.");
+    } finally {
+      setContextSaving(false);
+    }
+  };
 
   return (
     <section>
-      <div className="view-heading brand-heading"><div><h1>Brand kit</h1><p>Define the system every new campaign should sound and look like.</p></div><span className="version-pill">Version {kit.version}</span></div>
+      <div className="view-heading brand-heading"><div><h1>Brand & brain</h1><p>Set the identity and source context every generation run can use.</p></div><span className="version-pill">Version {kit.version}</span></div>
       <form className="brand-studio" onSubmit={save}>
         <div className="brand-controls">
           <div className="control-section"><div className="control-title"><Palette /><div><h2>Identity</h2><p>Core brand language and palette</p></div></div>
@@ -49,6 +84,32 @@ export function BrandKitView({ brandKit, onSave }: { brandKit: BrandKit | null; 
         </div>
         <BrandPreview kit={kit} />
       </form>
+      <div className="brain-studio">
+        <div className="control-title"><Database /><div><h2>Company brain</h2><p>Paste company facts, product notes, customer lessons, and approved source material.</p></div></div>
+        <p className="brain-safety-note">Only records explicitly marked public-safe are available to generation. Stored-only records remain visible here but are excluded from prompts.</p>
+        <form className="brain-ingest-form" onSubmit={addContext}>
+          <div className="form-grid">
+            <label className="field"><span>Title</span><input required maxLength={160} value={contextTitle} onChange={(event) => setContextTitle(event.target.value)} placeholder="Product launch note" /></label>
+            <label className="field"><span>Type</span><select value={contextKind} onChange={(event) => setContextKind(event.target.value)}><option value="company">Company</option><option value="product">Product</option><option value="customer">Customer</option><option value="founder">Founder</option><option value="market">Market</option><option value="proof">Proof point</option><option value="other">Other</option></select></label>
+            <label className="field full"><span>Context</span><textarea required maxLength={4000} value={contextSummary} onChange={(event) => setContextSummary(event.target.value)} placeholder="Paste a concise, self-contained fact or observation. Do not add material from another company's private systems." /></label>
+            <label className="field"><span>Source <small>optional</small></span><input maxLength={500} value={contextSource} onChange={(event) => setContextSource(event.target.value)} placeholder="Public URL or internal reference" /></label>
+            <label className="field"><span>Date <small>optional</small></span><input type="date" value={contextDate} onChange={(event) => setContextDate(event.target.value)} /></label>
+            <label className="field full"><span>Tags <small>comma separated</small></span><input value={contextTags} onChange={(event) => setContextTags(event.target.value)} placeholder="launch, customer, workflow" /></label>
+          </div>
+          <div className="brain-ingest-footer">
+            <label className="creative-check"><input type="checkbox" checked={contextPublicSafe} onChange={(event) => setContextPublicSafe(event.target.checked)} /><span>Approved for public content</span></label>
+            <button className="primary-pill" disabled={!onAddContext || contextSaving}>{contextSaving ? "Adding…" : "Add context"}</button>
+          </div>
+        </form>
+        <div className="brain-context-list">
+          {contextItems.map((item) => <article className="brain-context-item" key={item.id}>
+            <div><span className={item.public_safe ? "context-status public" : "context-status"}>{item.public_safe ? "Public-safe" : "Stored only"}</span><h3>{item.title}</h3><p>{item.summary}</p><small>{[item.kind, item.source, item.date ? new Date(item.date).toLocaleDateString() : "", ...item.tags].filter(Boolean).join(" · ")}</small></div>
+            {onRemoveContext && <button type="button" className="icon-button" aria-label={`Delete ${item.title}`} onClick={() => void onRemoveContext(item.id)}><Trash2 /></button>}
+          </article>)}
+          {contextItems.length === 0 && <div className="empty-state">No company context yet. Add your own source material before using auto generation.</div>}
+        </div>
+        {error && <div className="global-alert">{error}</div>}
+      </div>
     </section>
   );
 }

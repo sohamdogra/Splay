@@ -61,6 +61,21 @@ export type CampaignSlot = {
   theme: string;
 };
 
+export type CompanyContextItem = {
+  id: string;
+  title: string;
+  kind: string;
+  summary: string;
+  source?: string;
+  date?: string;
+  tags: string[];
+  public_safe: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+// Retained as an internal compatibility shape while the editorial runtime is
+// migrated from its original provider-specific naming.
 export type GBrainContextItem = {
   id: string;
   title: string;
@@ -74,6 +89,7 @@ export type GBrainContextItem = {
 
 export type SourceContext = {
   summary: string;
+  /** Legacy serialized key; values now reference only the project-local company brain. */
   gbrain_references: string[];
   why_now: string;
 };
@@ -363,7 +379,7 @@ export type GeneratedPost = {
   post_text: string;
   image_prompt: string;
   image_url: string;
-  image_provider: "canva" | "gpt-canva" | "placeholder" | "codex-imagegen";
+  image_provider: "canva" | "tokenmart-canva" | "gpt-canva" | "placeholder" | "codex-imagegen";
   canva_design_url: string | null;
   alt_text: string;
   hashtags: string[];
@@ -389,6 +405,12 @@ export type GeneratedPost = {
   campaign_id?: string;
   campaign_occurrence?: number;
   brand_kit_version?: number;
+  animation_background_url?: string;
+  animation_provider?: "tokenmart-seedance";
+  animation_model?: string;
+  animation_task_id?: string;
+  animation_prompt?: string;
+  animation_notes?: string[];
 };
 
 export type CanvaImageRequest = {

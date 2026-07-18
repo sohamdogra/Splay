@@ -130,14 +130,14 @@ export function brandProfileFromKit(kit: BrandKit): BrandProfile {
 
 export function defaultBrandKit(): BrandKit {
   return {
-    version: 1,
+    version: 0,
     updated_at: new Date(0).toISOString(),
     name: process.env.BRAND_NAME ?? "Splay",
-    tagline: "Deal context that survives the close.",
-    audience: process.env.BRAND_AUDIENCE ?? "private equity, investment banking, deal teams, founders, operators",
-    tone: process.env.BRAND_TONE ?? "sharp, credible, founder-led, direct, thoughtful",
-    positioning: "Splay reads deal work where it happens and turns it into reviewable next steps.",
-    avoid: ["generic AI hype", "revolutionize", "game changer", "fake certainty", "too many emojis", "overexplaining"],
+    tagline: "Add your company tagline.",
+    audience: process.env.BRAND_AUDIENCE ?? "Describe the people your company serves.",
+    tone: process.env.BRAND_TONE ?? "clear, specific, credible",
+    positioning: "Describe what your company does and why it matters.",
+    avoid: ["unsupported claims", "fake certainty", "generic hype"],
     colors: {
       primary: "#0F5EFF",
       secondary: "#0A3DB8",

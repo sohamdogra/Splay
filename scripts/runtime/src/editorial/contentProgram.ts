@@ -35,10 +35,9 @@ function pillarFor(item: GBrainContextItem | undefined, index: number): ContentP
 }
 
 function audienceFor(text: string): string {
-  if (/bank|buyer|sell-side|m&a/i.test(text)) return "investment banking deal teams";
-  if (/private equity|sponsor|diligence|post-close/i.test(text)) return "private equity deal teams";
-  if (/founder|operator/i.test(text)) return "founders and operators";
-  return "deal-team operators";
+  if (/customer|buyer|user|client/i.test(text)) return "customers and prospective customers";
+  if (/founder|operator|leader/i.test(text)) return "founders and operators";
+  return "the configured company audience";
 }
 
 function desiredResponse(pillar: ContentPillar): string {
@@ -46,5 +45,5 @@ function desiredResponse(pillar: ContentPillar): string {
   if (pillar === "workflow_observation") return "Recognize a costly coordination problem in their own work.";
   if (pillar === "operator_insight") return "Leave with a practical way to evaluate the workflow.";
   if (pillar === "founder_lesson") return "See the operating lesson behind how Splay is being built.";
-  return "Reconsider a common assumption about deal software.";
+  return "Reconsider a common assumption about the category.";
 }

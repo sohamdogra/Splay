@@ -10,10 +10,10 @@ test("keeps curated SVG and Canva layouts on the same template metadata and bund
   const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-image-layout-"));
   const previousImageMode = process.env.SOCIAL_AGENT_IMAGE_MODE;
   const previousMockMode = process.env.SOCIAL_AGENT_USE_MOCK_LLM;
-  const previousApiKey = process.env.OPENAI_API_KEY;
-  process.env.SOCIAL_AGENT_IMAGE_MODE = "gpt-canva";
+  const previousApiKey = process.env.TOKENMART_API_KEY;
+  process.env.SOCIAL_AGENT_IMAGE_MODE = "tokenmart-canva";
   process.env.SOCIAL_AGENT_USE_MOCK_LLM = "1";
-  delete process.env.OPENAI_API_KEY;
+  delete process.env.TOKENMART_API_KEY;
 
   try {
     const [post] = await attachImages([makePost()], outputDir);
@@ -49,7 +49,8 @@ test("keeps curated SVG and Canva layouts on the same template metadata and bund
     assert.match(post.image_prompt, /dark navy-blue/i);
     assert.match(post.image_prompt, /layered flowing wave/i);
     assert.match(post.image_prompt, /1200x675/);
-    assert.match(post.image_prompt, /Do not render words, letters, logos, brand marks/i);
+    assert.match(post.image_prompt, /Do not render words, letters, logos, brand marks.*typography.*CTA text, pricing, disclaimers/i);
+    assert.match(post.image_prompt, /added afterward by a deterministic renderer, Canva, or Figma/i);
     assert.match(post.image_prompt, /never create a gray or washed-out neutral dominant field/i);
     assert.ok(canvaRequests[0].render_contract.text_layers.every((layer) => layer.fits));
     assert.notEqual(visual.brief.headline, post.topic);
@@ -80,7 +81,7 @@ test("keeps curated SVG and Canva layouts on the same template metadata and bund
   } finally {
     restoreEnv("SOCIAL_AGENT_IMAGE_MODE", previousImageMode);
     restoreEnv("SOCIAL_AGENT_USE_MOCK_LLM", previousMockMode);
-    restoreEnv("OPENAI_API_KEY", previousApiKey);
+    restoreEnv("TOKENMART_API_KEY", previousApiKey);
     await rm(outputDir, { recursive: true, force: true });
   }
 });
@@ -91,13 +92,13 @@ test("creative mode generates separate visuals for each platform post", async ()
   const previousCreativeMode = process.env.SOCIAL_AGENT_CREATIVE_MODE;
   const previousUniqueImages = process.env.SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST;
   const previousMockMode = process.env.SOCIAL_AGENT_USE_MOCK_LLM;
-  const previousApiKey = process.env.OPENAI_API_KEY;
+  const previousApiKey = process.env.TOKENMART_API_KEY;
   const previousDatabaseUrl = process.env.DATABASE_URL;
   process.env.SOCIAL_AGENT_IMAGE_MODE = "canva";
   process.env.SOCIAL_AGENT_CREATIVE_MODE = "1";
   process.env.SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST = "1";
   process.env.SOCIAL_AGENT_USE_MOCK_LLM = "1";
-  delete process.env.OPENAI_API_KEY;
+  delete process.env.TOKENMART_API_KEY;
   delete process.env.DATABASE_URL;
 
   try {
@@ -114,7 +115,7 @@ test("creative mode generates separate visuals for each platform post", async ()
     restoreEnv("SOCIAL_AGENT_CREATIVE_MODE", previousCreativeMode);
     restoreEnv("SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST", previousUniqueImages);
     restoreEnv("SOCIAL_AGENT_USE_MOCK_LLM", previousMockMode);
-    restoreEnv("OPENAI_API_KEY", previousApiKey);
+    restoreEnv("TOKENMART_API_KEY", previousApiKey);
     restoreEnv("DATABASE_URL", previousDatabaseUrl);
     await rm(outputDir, { recursive: true, force: true });
   }
@@ -124,15 +125,17 @@ test("fails closed instead of substituting a deterministic live background", asy
   const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-live-background-failure-"));
   const previousImageMode = process.env.SOCIAL_AGENT_IMAGE_MODE;
   const previousMockMode = process.env.SOCIAL_AGENT_USE_MOCK_LLM;
-  const previousApiKey = process.env.OPENAI_API_KEY;
-  const previousCandidateCount = process.env.SOCIAL_AGENT_GPT_BACKGROUND_CANDIDATES;
+  const previousApiKey = process.env.TOKENMART_API_KEY;
+  const previousCandidateCount = process.env.TOKENMART_BACKGROUND_CANDIDATES;
+  const previousRetries = process.env.TOKENMART_MAX_RETRIES;
   const previousDatabaseUrl = process.env.DATABASE_URL;
   const previousFetch = globalThis.fetch;
   let calls = 0;
-  process.env.SOCIAL_AGENT_IMAGE_MODE = "gpt-canva";
+  process.env.SOCIAL_AGENT_IMAGE_MODE = "tokenmart-canva";
   process.env.SOCIAL_AGENT_USE_MOCK_LLM = "1";
-  process.env.OPENAI_API_KEY = "test-key";
-  process.env.SOCIAL_AGENT_GPT_BACKGROUND_CANDIDATES = "2";
+  process.env.TOKENMART_API_KEY = "test-key";
+  process.env.TOKENMART_BACKGROUND_CANDIDATES = "2";
+  process.env.TOKENMART_MAX_RETRIES = "0";
   delete process.env.DATABASE_URL;
   globalThis.fetch = (async () => {
     calls += 1;
@@ -148,14 +151,15 @@ test("fails closed instead of substituting a deterministic live background", asy
   try {
     await assert.rejects(
       attachImages([makePost()], outputDir),
-      /All 2 GPT background candidate\(s\) failed visual QA.*Refusing to substitute a deterministic live background/
+      /All 2 TokenMart background candidate\(s\) failed visual QA.*Refusing to substitute a deterministic live background/
     );
     assert.equal(calls, 2);
   } finally {
     restoreEnv("SOCIAL_AGENT_IMAGE_MODE", previousImageMode);
     restoreEnv("SOCIAL_AGENT_USE_MOCK_LLM", previousMockMode);
-    restoreEnv("OPENAI_API_KEY", previousApiKey);
-    restoreEnv("SOCIAL_AGENT_GPT_BACKGROUND_CANDIDATES", previousCandidateCount);
+    restoreEnv("TOKENMART_API_KEY", previousApiKey);
+    restoreEnv("TOKENMART_BACKGROUND_CANDIDATES", previousCandidateCount);
+    restoreEnv("TOKENMART_MAX_RETRIES", previousRetries);
     restoreEnv("DATABASE_URL", previousDatabaseUrl);
     globalThis.fetch = previousFetch;
     await rm(outputDir, { recursive: true, force: true });

@@ -1,5 +1,5 @@
 import { loadEnv } from "../config/loadEnv.ts";
-import { GBrainClient } from "../gbrain/gbrainClient.ts";
+import { CompanyBrainClient } from "../brain/companyBrainClient.ts";
 import { buildTopicFromManualInput } from "../agents/topicDiscoveryAgent.ts";
 import { generatePostsForIdea, postToRecentReference } from "../agents/postGenerationAgent.ts";
 import { attachImages } from "../agents/imagePromptAgent.ts";
@@ -36,12 +36,12 @@ try {
   const pack = await loadPostPack();
   const existing = pack.posts.filter((post) => post.campaign_id !== campaign.id);
   const generated: GeneratedPost[] = [];
-  const gbrain = new GBrainClient();
+  const brain = new CompanyBrainClient();
   const slots = campaignSlots(campaign);
 
   for (const slot of slots) {
     const topic = `${campaign.brief}. Campaign ${campaign.name}, week ${slot.occurrence} of ${campaign.occurrences}. Weekly focus: ${slot.theme}`;
-    const contexts = await gbrain.searchCompanyContext(topic);
+    const contexts = await brain.searchCompanyContext(topic);
     const idea = await buildTopicFromManualInput(topic, contexts, brand);
     const drafts = await generatePostsForIdea(idea, brand, {
       recentPosts: [...existing, ...generated].map(postToRecentReference)

@@ -1,9 +1,9 @@
 # Application architecture
 
-This checkout is an application backend, not a Codex skill package. The existing TypeScript runtime remains the domain core while `apps/api` is the boundary a future frontend uses.
+This checkout is an application, not a Codex skill package. The React frontend in `apps/web` uses `apps/api` as its HTTP boundary, while the existing TypeScript runtime remains the domain core.
 
 ```text
-Future frontend
+apps/web
       |
       | HTTP / JSON + generated media
       v
@@ -15,9 +15,10 @@ apps/api
       |
       v
 scripts/runtime
-  - GBrain retrieval
+  - project-local company-brain retrieval
   - editorial tournament and compliance gates
-  - visual composition and QA
+  - TokenMart background generation/animation
+  - deterministic visual composition and QA
   - review state and scheduling
   - Convex storage, Buffer, metrics, and feedback
       |
@@ -43,19 +44,21 @@ Jobs are currently process-local and retain the latest 100 completed records. Mo
 - Browser origins are allowlisted with `API_ALLOWED_ORIGINS`; wildcard CORS is not used.
 - Publishing requires an explicit `confirm: true` request and preflights Buffer/Convex configuration.
 - Local media is served only from the configured output directory.
-- The default GBrain bridge is the repository's credential-free, public-safe local reader, not the legacy remote proxy.
+- Company context is stored locally and is unavailable to generation until explicitly marked public-safe. No external GBrain bridge is initialized.
 
 For an internet deployment, put the API behind the application's normal identity-aware gateway. The bearer token is a useful local/shared-environment guard, not a multi-user authorization system.
 
 ## Frontend integration contract
 
-The OpenAPI document lives at `apps/api/openapi.json` and is served from `/api/v1/openapi.json`. A future frontend should:
+The OpenAPI document lives at `apps/api/openapi.json` and is served from `/api/v1/openapi.json`. The frontend:
 
-1. Read `/api/v1/health` for provider readiness.
+1. Read `/api/v1/health` for provider readiness, including TokenMart model configuration.
 2. Load and filter posts through `/api/v1/posts`.
-3. use each post's returned `media_url` rather than its internal `image_url` path.
+3. Use each post's returned `media_url` rather than its internal `image_url` path; use `animation_media_url` only to preview a raw background animation.
 4. Submit decisions and schedules through the per-post endpoints.
 5. Start long operations through `/api/v1/jobs/*` and poll the returned job URL/state.
 6. Require a distinct user confirmation immediately before calling the publishing endpoint.
 
 Do not parse `latest-preview.html` for application state; it is retained only as a compatibility review artifact.
+
+TokenMart handles concepts/background plates and background-only animation. Exact logo assets, typography, CTA, pricing, and disclaimers remain a separate deterministic composition step. The Buffer publisher intentionally ignores `animation_background_url`, preventing a raw generative animation from bypassing that step.
