@@ -169,12 +169,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .status-dot.ready { background: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, .08); }
 
 .main-content {
+  --content-width: 860px;
   position: relative;
   z-index: 1;
-  width: min(680px, calc(100vw - 148px));
-  margin-left: calc(92px + (100vw - 92px - min(680px, calc(100vw - 148px))) / 2);
+  width: min(var(--content-width), calc(100vw - 148px));
+  margin-left: calc(92px + (100vw - 92px - min(var(--content-width), calc(100vw - 148px))) / 2);
   padding: 34px 0 80px;
 }
+
+.main-content.view-home { --content-width: 760px; }
+.main-content.view-queue,
+.main-content.view-scheduled { --content-width: 960px; }
+.main-content.view-campaigns,
+.main-content.view-brand-kit { --content-width: 1120px; }
+.main-content.view-analytics,
+.main-content.view-settings { --content-width: 760px; }
 
 .main-content.hero {
   min-height: 88vh;
@@ -627,6 +636,15 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .icon-button { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 1px solid #e5e7eb; border-radius: 9px; background: #fff; color: #9ca3af; cursor: pointer; }
 .icon-button:hover { border-color: #f3b4b4; color: #b42318; }
 .icon-button svg { width: 14px; height: 14px; }
+
+@media (min-width: 1280px) {
+  .sidebar { width: 236px; }
+  .sidebar-label { opacity: 1; }
+  .main-content {
+    width: min(var(--content-width), calc(100vw - 300px));
+    margin-left: calc(260px + (100vw - 260px - min(var(--content-width), calc(100vw - 300px))) / 2);
+  }
+}
 
 @media (max-width: 820px) {
   .main-content { width: auto; margin-left: 92px; margin-right: 24px; }

@@ -73,7 +73,19 @@ export function CampaignsView({ campaigns, busy, onCreate, onGenerate, onStatus,
             <label className="field full"><span>Core brief</span><textarea required maxLength={500} value={brief} onChange={(event) => setBrief(event.target.value)} placeholder="Explain one useful company insight each week using approved source context." /></label>
             <label className="field full"><span>Weekly themes <small>one per line, recycled if needed</small></span><textarea className="short" value={themes} onChange={(event) => setThemes(event.target.value)} placeholder={"Customer outcomes\nProduct lessons\nFounder perspective"} /></label>
             <div className="field"><span>Platforms</span><div className="platform-selector">
-              {(["linkedin", "x"] as Platform[]).map((platform) => <button type="button" key={platform} className={platforms[platform] ? "selected" : ""} onClick={() => setPlatforms((value) => ({ ...value, [platform]: !value[platform] }))}>{platform === "linkedin" ? "in  LinkedIn" : "𝕏  X"}</button>)}
+              {(["linkedin", "x"] as Platform[]).map((platform) => (
+                <button
+                  type="button"
+                  key={platform}
+                  className={platforms[platform] ? "selected" : ""}
+                  aria-label={platform === "linkedin" ? "LinkedIn" : "X"}
+                  aria-pressed={platforms[platform]}
+                  title={platform === "linkedin" ? "LinkedIn" : "X"}
+                  onClick={() => setPlatforms((value) => ({ ...value, [platform]: !value[platform] }))}
+                >
+                  <span className="platform-glyph" aria-hidden="true">{platform === "linkedin" ? "in" : "𝕏"}</span>
+                </button>
+              ))}
             </div></div>
             <label className="field"><span>First post</span><input type="datetime-local" required value={startAt} onChange={(event) => setStartAt(event.target.value)} /></label>
             <label className="field"><span>Cadence</span><select value={intervalWeeks} onChange={(event) => setIntervalWeeks(Number(event.target.value))}><option value={1}>Every week</option><option value={2}>Every 2 weeks</option><option value={3}>Every 3 weeks</option><option value={4}>Every 4 weeks</option></select></label>

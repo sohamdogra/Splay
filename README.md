@@ -153,7 +153,7 @@ Animate an existing generated background plate with Seedance:
 ```sh
 curl -X POST http://127.0.0.1:4173/api/v1/jobs/animate-background \
   -H 'Content-Type: application/json' \
-  -d '{"post_id":"POST_ID","duration":5,"resolution":"720p"}'
+  -d '{"post_id":"POST_ID","duration":10,"resolution":"720p"}'
 ```
 
 Approve a post with structured feedback:

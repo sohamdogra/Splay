@@ -92,6 +92,23 @@ test("fails closed when TokenMart animation is not configured", async () => {
   assert.equal((await response.json()).error.code, "tokenmart_not_configured");
 });
 
+test("restricts animation requests to 8-12 seconds", async () => {
+  process.env.TOKENMART_API_KEY = "test-tokenmart-key";
+  try {
+    for (const duration of [7, 13]) {
+      const response = await fetch(`${baseUrl}/api/v1/jobs/animate-background`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ post_id: "post-1", duration })
+      });
+      assert.equal(response.status, 400);
+      assert.match((await response.json()).error.message, /duration must be an integer between 8 and 12/);
+    }
+  } finally {
+    process.env.TOKENMART_API_KEY = "";
+  }
+});
+
 test("records review decisions and explicit schedules", async () => {
   const decision = await fetch(`${baseUrl}/api/v1/posts/post-1/decisions`, {
     method: "POST",

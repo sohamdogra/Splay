@@ -284,7 +284,7 @@
                   "post_id": { "type": "string", "maxLength": 300 },
                   "background": { "type": "string", "maxLength": 4000 },
                   "prompt": { "type": "string", "maxLength": 4000 },
-                  "duration": { "type": "integer", "minimum": 2, "maximum": 15, "default": 5 },
+                  "duration": { "type": "integer", "minimum": 8, "maximum": 12, "default": 10 },
                   "resolution": { "type": "string", "enum": ["480p", "720p", "1080p"], "default": "720p" }
                 }
               }

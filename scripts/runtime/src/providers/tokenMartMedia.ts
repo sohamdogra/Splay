@@ -3,6 +3,9 @@ import { Buffer } from "node:buffer";
 const DEFAULT_BASE_URL = "https://model.service-inference.ai";
 const DEFAULT_IMAGE_MODEL = "dola-seedream-5-0-pro-260628";
 const DEFAULT_VIDEO_MODEL = "dreamina-seedance-2-0-260128";
+export const MIN_ANIMATION_DURATION_SECONDS = 8;
+export const MAX_ANIMATION_DURATION_SECONDS = 12;
+export const DEFAULT_ANIMATION_DURATION_SECONDS = 10;
 
 type FetchLike = typeof fetch;
 type Sleep = (milliseconds: number) => Promise<void>;
@@ -107,6 +110,10 @@ export class TokenMartMediaClient {
 
   async createAnimation(input: CreateAnimationInput): Promise<AnimationTask> {
     const model = input.model?.trim() || process.env.TOKENMART_VIDEO_MODEL?.trim() || DEFAULT_VIDEO_MODEL;
+    const duration = input.duration ?? DEFAULT_ANIMATION_DURATION_SECONDS;
+    if (!Number.isSafeInteger(duration) || duration < MIN_ANIMATION_DURATION_SECONDS || duration > MAX_ANIMATION_DURATION_SECONDS) {
+      throw new Error(`duration must be an integer between ${MIN_ANIMATION_DURATION_SECONDS} and ${MAX_ANIMATION_DURATION_SECONDS} seconds.`);
+    }
     const content: Array<Record<string, unknown>> = [{
       type: "text",
       text: requiredText(input.prompt, "prompt")
@@ -126,7 +133,7 @@ export class TokenMartMediaClient {
         content,
         resolution: input.resolution ?? "720p",
         ratio: input.ratio ?? "16:9",
-        duration: input.duration ?? 5,
+        duration,
         generate_audio: false,
         watermark: false
       })

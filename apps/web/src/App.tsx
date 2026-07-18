@@ -207,7 +207,7 @@ export default function App() {
       </div>
       <Sidebar view={view} health={health} onNavigate={setView} />
 
-      <main className={hero ? "main-content hero" : "main-content"}>
+      <main className={`${hero ? "main-content hero" : "main-content"} view-${view}`}>
         {view === "home" && (
           <section className="home-view">
             {hero && (

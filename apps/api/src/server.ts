@@ -20,6 +20,11 @@ import {
 } from "./http.ts";
 import { JobManager, type JobCommand } from "./jobs.ts";
 import { getOutputDir, isTestMode } from "../../../scripts/runtime/src/config/runtimeMode.ts";
+import {
+  DEFAULT_ANIMATION_DURATION_SECONDS,
+  MAX_ANIMATION_DURATION_SECONDS,
+  MIN_ANIMATION_DURATION_SECONDS
+} from "../../../scripts/runtime/src/providers/tokenMartMedia.ts";
 import { renderPreview } from "../../../scripts/runtime/src/render/previewRenderer.ts";
 import {
   loadPostPack,
@@ -333,7 +338,14 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
           throw new HttpError(503, "TOKENMART_API_KEY is required for background animation.", "tokenmart_not_configured");
         }
         const postId = requiredString(body.post_id, "post_id", 300);
-        const duration = body.duration === undefined ? undefined : requiredInteger(body.duration, "duration", 2, 15);
+        const duration = body.duration === undefined
+          ? undefined
+          : requiredInteger(
+              body.duration,
+              "duration",
+              MIN_ANIMATION_DURATION_SECONDS,
+              MAX_ANIMATION_DURATION_SECONDS
+            );
         const resolution = body.resolution === undefined
           ? undefined
           : requiredEnum(body.resolution, "resolution", ["480p", "720p", "1080p"] as const);
@@ -347,7 +359,11 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         const job = jobs.enqueue({
           ...coreCommand("animate-background", "animateBackground.ts"),
           args: ["--experimental-strip-types", path.join(CORE_ROOT, "src", "cli", "animateBackground.ts"), ...args],
-          metadata: { post_id: postId, duration: duration ?? 5, resolution: resolution ?? "720p" }
+          metadata: {
+            post_id: postId,
+            duration: duration ?? DEFAULT_ANIMATION_DURATION_SECONDS,
+            resolution: resolution ?? "720p"
+          }
         });
         return sendJson(request, response, 202, { data: job }, requestId);
       }

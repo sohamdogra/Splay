@@ -2,7 +2,12 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadEnv } from "../config/loadEnv.ts";
 import { getOutputDir } from "../config/runtimeMode.ts";
-import { TokenMartMediaClient } from "../providers/tokenMartMedia.ts";
+import {
+  DEFAULT_ANIMATION_DURATION_SECONDS,
+  MAX_ANIMATION_DURATION_SECONDS,
+  MIN_ANIMATION_DURATION_SECONDS,
+  TokenMartMediaClient
+} from "../providers/tokenMartMedia.ts";
 import { renderPreview } from "../render/previewRenderer.ts";
 import { hostImageIfLocal, isImageHostConfigured } from "../storage/imageHost.ts";
 import { loadPostPack, savePostPack } from "../storage/postStore.ts";
@@ -11,10 +16,15 @@ import type { CanvaImageRequest, GeneratedPost } from "../types/index.ts";
 loadEnv();
 
 const postId = readArg("--post-id");
-if (!postId) throw new Error("Usage: animate-background --post-id <post-id> [--background <path-or-url>] [--duration 5] [--resolution 720p]");
+if (!postId) throw new Error("Usage: animate-background --post-id <post-id> [--background <path-or-url>] [--duration 10] [--resolution 720p]");
 if (!process.env.TOKENMART_API_KEY?.trim()) throw new Error("TOKENMART_API_KEY must be configured before generating an animation.");
 
-const duration = integerArg("--duration", 5, 2, 15);
+const duration = integerArg(
+  "--duration",
+  DEFAULT_ANIMATION_DURATION_SECONDS,
+  MIN_ANIMATION_DURATION_SECONDS,
+  MAX_ANIMATION_DURATION_SECONDS
+);
 const resolution = enumArg("--resolution", ["480p", "720p", "1080p"] as const, "720p");
 const pack = await loadPostPack();
 const post = pack.posts.find((candidate) => candidate.id === postId);

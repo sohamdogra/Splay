@@ -198,13 +198,13 @@ After a post has a generated background plate, start a background-only Seedance 
 ```bash
 curl -X POST http://127.0.0.1:4173/api/v1/jobs/animate-background \
   -H 'Content-Type: application/json' \
-  -d '{"post_id":"post-id-1","duration":5,"resolution":"720p"}'
+  -d '{"post_id":"post-id-1","duration":10,"resolution":"720p"}'
 ```
 
 Or use the operator command:
 
 ```bash
-npm run animate-background -- --post-id post-id-1 --duration 5 --resolution 720p
+npm run animate-background -- --post-id post-id-1 --duration 10 --resolution 720p
 ```
 
 For a local plate, this workflow first uploads the image to Convex and passes its public HTTPS URL to TokenMart as the Seedance first frame. The completed raw background is saved as `videos/<post-id>-background.mp4`, recorded in the post as `animation_background_url`, and returned to a frontend as `animation_media_url`.

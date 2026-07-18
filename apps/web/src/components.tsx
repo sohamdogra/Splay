@@ -106,13 +106,17 @@ export function Composer({
             className={platforms.linkedin ? "toggle-pill selected" : "toggle-pill"}
             onClick={() => onTogglePlatform("linkedin")}
             aria-pressed={platforms.linkedin}
-          ><span className="platform-glyph">in</span> LinkedIn</button>
+            aria-label="LinkedIn"
+            title="LinkedIn"
+          ><span className="platform-glyph" aria-hidden="true">in</span></button>
           <button
             type="button"
             className={platforms.x ? "toggle-pill selected" : "toggle-pill"}
             onClick={() => onTogglePlatform("x")}
             aria-pressed={platforms.x}
-          ><span className="platform-glyph">𝕏</span> X</button>
+            aria-label="X"
+            title="X"
+          ><span className="platform-glyph" aria-hidden="true">𝕏</span></button>
           <button
             type="button"
             className={creative ? "toggle-pill creative selected" : "toggle-pill creative"}

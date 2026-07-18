@@ -114,11 +114,28 @@ test("submits and polls a Seedance background animation task", async () => {
     ],
     resolution: "720p",
     ratio: "16:9",
-    duration: 5,
+    duration: 10,
     generate_audio: false,
     watermark: false
   });
   assert.ok(requests.every((request) => request.authorization === "Bearer test-tokenmart-key"));
+});
+
+test("restricts Seedance animations to 8-12 seconds", async () => {
+  const client = new TokenMartMediaClient({
+    apiKey: "test-tokenmart-key",
+    maxRetries: 0,
+    fetch: async () => jsonResponse({ id: "task-123", status: "queued" })
+  });
+
+  await assert.rejects(
+    client.createAnimation({ prompt: "Background motion only.", duration: 7 }),
+    /duration must be an integer between 8 and 12 seconds/
+  );
+  await assert.rejects(
+    client.createAnimation({ prompt: "Background motion only.", duration: 13 }),
+    /duration must be an integer between 8 and 12 seconds/
+  );
 });
 
 function jsonResponse(body: unknown, status = 200): Response {
