@@ -143,10 +143,10 @@ export async function schedulePost(id: string, localDateTime: string): Promise<S
   return response.data;
 }
 
-export async function publishApproved(): Promise<Job> {
+export async function publishApproved(postId: string, mode: "now" | "queue" = "now"): Promise<Job> {
   const response = await request<ApiEnvelope<Job>>("/api/v1/jobs/publish-approved", {
     method: "POST",
-    body: JSON.stringify({ confirm: true })
+    body: JSON.stringify({ confirm: true, post_id: postId, mode })
   });
   return response.data;
 }

@@ -52,6 +52,7 @@ beforeEach(() => {
 
 test("queues posts with addToQueue when no scheduled_for is set", async () => {
   const calls: Record<string, unknown>[] = [];
+  process.env.BUFFER_PUBLISH_MODE = "queue";
   globalThis.fetch = fakeBufferFetch(calls);
 
   const result = await new BufferPublisher().publish(makePost({ scheduled_for: null }));
@@ -61,6 +62,20 @@ test("queues posts with addToQueue when no scheduled_for is set", async () => {
   assert.equal(result.target_status, "staged");
   assert.equal(input.mode, "addToQueue");
   assert.equal("dueAt" in input, false);
+});
+
+test("publishes immediately with shareNow when requested by the frontend", async () => {
+  const calls: Record<string, unknown>[] = [];
+  globalThis.fetch = fakeBufferFetch(calls);
+
+  const result = await new BufferPublisher({ mode: "now" }).publish(makePost({ scheduled_for: null }));
+  const input = extractInput(calls);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.target_status, "posted");
+  assert.equal(input.mode, "shareNow");
+  assert.equal(input.saveToDraft, false);
+  assert.match(result.message, /publish request accepted/i);
 });
 
 test("uses customScheduled and dueAt when scheduled_for is set", async () => {

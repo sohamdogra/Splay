@@ -1,6 +1,6 @@
 import { loadEnv } from "../config/loadEnv.ts";
 import { CompanyBrainClient } from "../brain/companyBrainClient.ts";
-import { buildTopicFromManualInput } from "../agents/topicDiscoveryAgent.ts";
+import { buildTopicFromManualInput, parseManualPostRequest } from "../agents/topicDiscoveryAgent.ts";
 import { generatePostsForIdea } from "../agents/postGenerationAgent.ts";
 import { attachImages } from "../agents/imagePromptAgent.ts";
 import { savePostPack } from "../storage/postStore.ts";
@@ -20,7 +20,8 @@ if (!topic) {
 
 const brand = brandProfileFromKit(await loadBrandKit());
 const brain = new CompanyBrainClient();
-const contexts = await brain.searchCompanyContext(topic);
+const request = parseManualPostRequest(topic);
+const contexts = await brain.searchCompanyContext(`${request.topic} ${request.brief}`);
 const idea = await buildTopicFromManualInput(topic, contexts, brand);
 const drafts = await generatePostsForIdea(idea, brand);
 const posts = await attachImages(drafts);
@@ -28,7 +29,7 @@ const posts = await attachImages(drafts);
 const pack: PostPack = {
   generated_at: new Date().toISOString(),
   brand,
-  discovered_themes: [topic],
+  discovered_themes: [idea.topic],
   posts,
   publish_logs: [],
   editorial_spec_version: EDITORIAL_SPEC_VERSION,
@@ -37,7 +38,7 @@ const pack: PostPack = {
 
 await savePostPack(pack);
 const previewPath = await renderPreview(pack);
-console.log(`Generated ${posts.length} drafts for "${topic}".`);
+console.log(`Generated ${posts.length} drafts for "${idea.topic}".`);
 console.log(`Preview: ${previewPath}`);
 
 function readArg(name: string): string | undefined {

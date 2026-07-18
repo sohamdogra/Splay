@@ -11,12 +11,16 @@ import { listCampaigns } from "../storage/campaignStore.ts";
 loadEnv();
 
 const pack = await loadPostPack();
+const postId = readArg("--post-id");
+const publishMode = readArg("--mode") === "queue" ? "queue" : "now";
 const activeCampaignIds = new Set((await listCampaigns()).filter((campaign) => campaign.status === "active").map((campaign) => campaign.id));
-const approved = pack.posts.filter((post) => post.status === "approved" && (!post.campaign_id || activeCampaignIds.has(post.campaign_id)));
+const approved = pack.posts.filter((post) => post.status === "approved"
+  && (!postId || post.id === postId)
+  && (!post.campaign_id || activeCampaignIds.has(post.campaign_id)));
 const publisher = selectPublisher();
 
 if (approved.length === 0) {
-  console.log("No eligible approved posts to stage. Paused campaign posts remain local.");
+  console.log("No eligible approved posts to publish. Paused campaign posts remain local.");
   process.exit(0);
 }
 
@@ -24,7 +28,7 @@ let latestPack = pack;
 for (const post of approved) {
   const result = await publishWithHosting(publisher, post);
   latestPack = await applyPublishResult(result);
-  console.log(`${result.ok ? "Staged" : "Failed"} ${post.id}: ${result.message}`);
+  console.log(`${result.ok ? (result.target_status === "posted" ? "Posted" : "Scheduled") : "Failed"} ${post.id}: ${result.message}`);
 }
 
 await renderPreview(latestPack);
@@ -33,9 +37,14 @@ console.log(`Stage logs written to ${getOutputDir()}/publish-log.jsonl`);
 function selectPublisher(): Publisher {
   if (isTestMode()) return new MockPublisher();
   if (process.env.BUFFER_API_KEY && hasBufferProfileIds()) {
-    return new BufferPublisher();
+    return new BufferPublisher({ mode: publishMode });
   }
   return new MockPublisher();
+}
+
+function readArg(name: string): string | undefined {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? undefined : process.argv[index + 1];
 }
 
 function hasBufferProfileIds(): boolean {

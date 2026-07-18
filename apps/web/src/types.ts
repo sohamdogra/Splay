@@ -58,6 +58,7 @@ export interface Job {
   id: string;
   kind: "generate" | "campaign-generate" | "animate-background" | "publish-approved" | "metrics-collect" | "metrics-score" | "feedback-generate";
   status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  metadata?: Record<string, unknown>;
   created_at: string;
   output: string;
   error?: string;

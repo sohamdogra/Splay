@@ -130,6 +130,7 @@ export function Composer({
 }
 
 export function JobStrip({ job }: { job: Job }) {
+  const publishingNow = job.metadata?.mode === "now";
   const generationLabels: Record<Job["status"], string> = {
     queued: "Job queued — jobs run one at a time",
     running: "Generating — editorial tournament, compliance gates, compositor & visual QA",
@@ -139,8 +140,8 @@ export function JobStrip({ job }: { job: Job }) {
   };
   const publishingLabels: Record<Job["status"], string> = {
     queued: "Publishing job queued",
-    running: "Uploading media to Convex and queueing approved posts in Buffer…",
-    succeeded: "Queued in Buffer — Buffer handles the publish time",
+    running: publishingNow ? "Uploading media and publishing through Buffer…" : "Uploading media and scheduling through Buffer…",
+    succeeded: publishingNow ? "Posted — Buffer accepted the immediate publish" : "Scheduled in Buffer",
     failed: job.error || "Publishing failed",
     cancelled: "Publishing cancelled"
   };
@@ -197,12 +198,11 @@ function sourceLabel(post: SplayPost): string {
   return `Company brain · ${filename}`;
 }
 
-export function PostCard({ post, approvedCount, onDecision, onSchedule, onPublish }: {
+export function PostCard({ post, onDecision, onSchedule, onPublish }: {
   post: SplayPost;
-  approvedCount: number;
   onDecision: (id: string, decision: Decision, reason: ReviewReason, note?: string) => Promise<void>;
   onSchedule: (id: string, value: string) => Promise<void>;
-  onPublish: () => Promise<void>;
+  onPublish: (id: string) => Promise<void>;
 }) {
   const [reasonFor, setReasonFor] = useState<"revise" | "reject" | null>(null);
   const [approvalOverride, setApprovalOverride] = useState(false);
@@ -335,14 +335,14 @@ export function PostCard({ post, approvedCount, onDecision, onSchedule, onPublis
               }}
             />
           </label>
-          <span className="schedule-help">Empty = Buffer picks the next open slot</span>
+          <span className="schedule-help">Empty = publish immediately; choose a time to schedule</span>
         </div>
       )}
 
       {confirming && (
         <div className="confirm-row">
-          <span>Buffer will queue all {approvedCount} approved {approvedCount === 1 ? "post" : "posts"}. Confirm?</span>
-          <button className="primary-pill small" disabled={pending} onClick={() => run(onPublish)}>Confirm</button>
+          <span>{scheduleValue ? `Buffer will schedule this post for ${new Date(post.scheduled_for || "").toLocaleString()}.` : "Buffer will publish this post immediately. Confirm?"}</span>
+          <button className="primary-pill small" disabled={pending} onClick={() => run(() => onPublish(post.id))}>Confirm</button>
           <button className="outline-button" disabled={pending} onClick={() => setConfirming(false)}>Cancel</button>
         </div>
       )}

@@ -102,7 +102,7 @@ Open **Campaigns** in the frontend, then:
 1. Set the campaign brief, optional weekly themes, platforms, first publish time, cadence, and number of weeks.
 2. Create the campaign and choose **Generate weekly drafts**. Splay generates one platform draft for every future slot and preserves the selected local time across daylight-saving changes.
 3. Review and approve the generated posts in **Review queue**.
-4. Use the existing confirm-gated publish action. Buffer receives each approved post as `customScheduled` with its exact future timestamp.
+4. Use the existing confirm-gated publish action. Buffer receives each approved campaign post as `customScheduled` with its exact future timestamp. Unscheduled posts use `shareNow` and publish immediately.
 
 Pausing a campaign keeps its approved posts out of the Buffer publishing job. Campaign generation never auto-approves or silently publishes posts.
 

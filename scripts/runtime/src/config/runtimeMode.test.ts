@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import test from "node:test";
 import { getOutputDir, isTestMode } from "./runtimeMode.ts";
 import { getPrisma, isDatabaseConfigured } from "../db/prisma.ts";
@@ -12,7 +13,7 @@ test("test mode isolates output and disables database access", async () => {
 
   try {
     assert.equal(isTestMode(), true);
-    assert.equal(getOutputDir(), "output/test");
+    assert.equal(getOutputDir(), path.join("output", "test"));
     assert.equal(isDatabaseConfigured(), false);
     await assert.rejects(getPrisma(), /Database access is disabled/);
   } finally {

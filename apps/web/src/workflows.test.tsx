@@ -67,7 +67,7 @@ describe("campaign and brand workflows", () => {
       }
     };
 
-    render(<PostCard post={post} approvedCount={0} onDecision={onDecision} onSchedule={vi.fn()} onPublish={vi.fn()} />);
+    render(<PostCard post={post} onDecision={onDecision} onSchedule={vi.fn()} onPublish={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "Approve" }));
 
     const note = screen.getByLabelText("Approval override explanation");
@@ -80,5 +80,30 @@ describe("campaign and brand workflows", () => {
       "strong_insight",
       "The claim is specific and directly supported by the company source."
     );
+  });
+
+  it("confirms immediate publishing for only the selected post", async () => {
+    const onPublish = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    const post: SplayPost = {
+      id: "post-approved",
+      platform: "x",
+      topic: "Retention signals",
+      post_text: "Spot the churn signal while there is still time to act.",
+      hashtags: [],
+      status: "approved",
+      created_at: "2026-07-18T00:00:00.000Z",
+      scheduled_for: null,
+      media_url: null,
+      alt_text: "Retention signal illustration",
+      source_context: { summary: "Retention source", gbrain_references: [], why_now: "Current campaign" }
+    };
+
+    render(<PostCard post={post} onDecision={vi.fn()} onSchedule={vi.fn()} onPublish={onPublish} />);
+    await user.click(screen.getByRole("button", { name: "Post to X" }));
+    expect(screen.getByText("Buffer will publish this post immediately. Confirm?")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+
+    expect(onPublish).toHaveBeenCalledWith("post-approved");
   });
 });

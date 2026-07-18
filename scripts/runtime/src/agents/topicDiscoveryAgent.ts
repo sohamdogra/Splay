@@ -42,14 +42,16 @@ export async function discoverTopicIdeas(
 }
 
 export async function buildTopicFromManualInput(
-  topic: string,
+  input: string,
   contexts: GBrainContextItem[],
   brand: BrandProfile
 ): Promise<TopicIdea> {
+  const request = parseManualPostRequest(input);
+  const topic = request.topic;
   const supporting = contexts.slice(0, 4);
   const summary = supporting.length > 0
-    ? supporting.map((item) => item.summary).join(" ")
-    : `${brand.name} can speak credibly about ${topic} based on its positioning and operating point of view.`;
+    ? [request.brief, ...supporting.map((item) => item.summary)].filter(Boolean).join(" ")
+    : request.brief;
 
   return {
     id: `idea-${slugify(topic)}`,
@@ -67,12 +69,44 @@ export async function buildTopicFromManualInput(
       id: `manual-${slugify(topic)}`,
       title: topic,
       kind: "internal",
-      summary,
+      summary: request.brief,
       references: supporting.flatMap((item) => item.references),
       tags: []
     }]),
     post_intent: buildPostIntent(supporting[0], topic)
   };
+}
+
+export function parseManualPostRequest(input: string): { topic: string; brief: string } {
+  const normalized = input.replace(/\s+/g, " ").trim();
+  const withoutInstruction = normalized
+    .replace(/^(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:make|create|write|generate|draft)(?:\s+me)?\s+(?:an?\s+)?(?:social(?:\s+media)?\s+)?post\s+(?:about|on|for)\s+/i, "")
+    .replace(/^(?:i(?:'d|\s+would)?\s+like|i\s+want|we\s+need)\s+(?:an?\s+)?post\s+(?:about|on|for)\s+/i, "")
+    .replace(/^(?:post\s+(?:about|on)|topic\s*:)\s*/i, "")
+    .trim();
+  const brief = withoutInstruction || normalized;
+  const predicate = brief.match(/^(.{2,100}?)(?=\s+(?:is|are|was|were|has|have|helps?|uses?|provides?|offers?|builds?|lets?|allows?|enables?|makes?|turns?)\b)/i);
+  const prefix = (predicate?.[1] || brief.split(/(?<=[!?])\s+/)[0] || brief).trim();
+  const words = prefix.split(/\s+/).filter(Boolean);
+  const topicWords = duplicateSubject(words) ? [words[0]] : words.slice(0, 8);
+  const topic = topicWords.join(" ").replace(/[,:;.!?]+$/, "").trim() || "Company update";
+  const detail = stripLeadingSubject(brief, topic);
+
+  return {
+    topic: sentenceCase(topic),
+    brief: detail || brief
+  };
+}
+
+function duplicateSubject(words: string[]): boolean {
+  if (words.length !== 2) return false;
+  const normalizeSubject = (value: string) => value.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split(".")[0].replace(/[^a-z0-9]/g, "");
+  return Boolean(normalizeSubject(words[0])) && normalizeSubject(words[0]) === normalizeSubject(words[1]);
+}
+
+function stripLeadingSubject(brief: string, topic: string): string {
+  const escaped = topic.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return brief.replace(new RegExp(`^${escaped}(?:\\s+${escaped.split(/\\s+/).at(-1)})?\\s*[-:,.]?\\s*`, "i"), "").trim();
 }
 
 function buildIdeas(

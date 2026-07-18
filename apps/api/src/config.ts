@@ -73,7 +73,7 @@ export function publicRuntimeConfig(): Record<string, unknown> {
       buffer_configured: Boolean(process.env.BUFFER_API_KEY && bufferProfiles),
       media_host: "convex",
       media_host_configured: convexStorageConfigured,
-      mode: process.env.BUFFER_PUBLISH_MODE || "queue"
+      mode: process.env.BUFFER_PUBLISH_MODE || "now"
     }
   };
 }

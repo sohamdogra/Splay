@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createCampaign, decidePost, generateCampaign, generatePosts, schedulePost, setApiToken } from "./api";
+import { createCampaign, decidePost, generateCampaign, generatePosts, publishApproved, schedulePost, setApiToken } from "./api";
 
 function response(data: unknown, status = 200) {
   return {
@@ -47,6 +47,18 @@ describe("Splay API client", () => {
 
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(init.body).toBe(JSON.stringify({ scheduled_for: new Date("2026-07-20T09:30").toISOString() }));
+  });
+
+  it("publishes only the selected approved post immediately", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ data: { id: "job-publish", kind: "publish-approved" } }, 202));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await publishApproved("post-1");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/jobs/publish-approved", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ confirm: true, post_id: "post-1", mode: "now" })
+    }));
   });
 
   it("creates and generates a weekly campaign through dedicated endpoints", async () => {

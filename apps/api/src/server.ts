@@ -355,10 +355,16 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
       if (request.method === "POST" && pathname === `${API_PREFIX}/jobs/publish-approved`) {
         const body = await readJson(request);
         if (body.confirm !== true) {
-          throw new HttpError(400, "Set confirm to true to queue approved posts.", "confirmation_required");
+          throw new HttpError(400, "Set confirm to true to publish the selected post.", "confirmation_required");
         }
-        await assertPublishingReady();
-        const job = jobs.enqueue(coreCommand("publish-approved", "publishApproved.ts"));
+        const postId = optionalString(body.post_id, "post_id", 300);
+        const mode = body.mode === undefined ? "now" : requiredEnum(body.mode, "mode", ["now", "queue"] as const);
+        await assertPublishingReady(postId);
+        const command = coreCommand("publish-approved", "publishApproved.ts");
+        if (postId) command.args.push("--post-id", postId);
+        command.args.push("--mode", mode);
+        command.metadata = { ...(postId ? { post_id: postId } : {}), mode };
+        const job = jobs.enqueue(command);
         return sendJson(request, response, 202, { data: job }, requestId);
       }
 
@@ -429,11 +435,11 @@ function coreCommand(kind: JobCommand["kind"], scriptName: string): JobCommand {
   };
 }
 
-async function assertPublishingReady(): Promise<void> {
+async function assertPublishingReady(postId?: string): Promise<void> {
   const pack = await loadPostPack();
   const activeCampaignIds = new Set((await listCampaigns()).filter((campaign) => campaign.status === "active").map((campaign) => campaign.id));
-  const approved = pack.posts.filter((post) => post.status === "approved" && (!post.campaign_id || activeCampaignIds.has(post.campaign_id)));
-  if (approved.length === 0) throw new HttpError(409, "There are no approved posts to queue.", "nothing_to_publish");
+  const approved = pack.posts.filter((post) => post.status === "approved" && (!postId || post.id === postId) && (!post.campaign_id || activeCampaignIds.has(post.campaign_id)));
+  if (approved.length === 0) throw new HttpError(409, postId ? "The selected post is not approved or eligible to publish." : "There are no approved posts to publish.", "nothing_to_publish");
   if (isTestMode()) return;
 
   const hasProfiles = Boolean(

@@ -247,7 +247,7 @@
     "/api/v1/jobs/publish-approved": {
       "post": {
         "summary": "Queue approved posts in Buffer",
-        "description": "Requires explicit {\"confirm\":true}; fails closed when Buffer or required media hosting is not configured.",
+        "description": "Publishes one selected approved post immediately by default; future-dated posts remain custom-scheduled. Requires explicit confirmation and fails closed when Buffer or required media hosting is not configured.",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -256,7 +256,11 @@
               "schema": {
                 "type": "object",
                 "required": ["confirm"],
-                "properties": { "confirm": { "type": "boolean", "const": true } }
+                "properties": {
+                  "confirm": { "type": "boolean", "const": true },
+                  "post_id": { "type": "string", "maxLength": 300 },
+                  "mode": { "type": "string", "enum": ["now", "queue"], "default": "now" }
+                }
               }
             }
           }

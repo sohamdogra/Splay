@@ -17,7 +17,7 @@ export class BufferPublisher implements Publisher {
   private readonly apiUrl: string;
   private readonly mode: PublishMode;
 
-  constructor() {
+  constructor(options: { mode?: PublishMode } = {}) {
     this.apiKey = String(process.env.BUFFER_API_KEY ?? "");
     this.fallbackProfileIds = parseIds(process.env.BUFFER_PROFILE_IDS);
     this.platformProfileIds = {
@@ -25,7 +25,7 @@ export class BufferPublisher implements Publisher {
       x: parseIds(process.env.BUFFER_X_PROFILE_IDS)
     };
     this.apiUrl = String(process.env.BUFFER_API_URL ?? "https://api.buffer.com");
-    this.mode = process.env.BUFFER_PUBLISH_MODE === "now" ? "now" : "queue";
+    this.mode = options.mode ?? (process.env.BUFFER_PUBLISH_MODE === "queue" ? "queue" : "now");
   }
 
   async publish(post: GeneratedPost): Promise<PublishResult> {

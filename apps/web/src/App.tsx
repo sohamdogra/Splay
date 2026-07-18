@@ -125,8 +125,8 @@ export default function App() {
     updatePost(await schedulePost(id, value));
   };
 
-  const handlePublish = async () => {
-    const job = await publishApproved();
+  const handlePublish = async (id: string) => {
+    const job = await publishApproved(id, "now");
     setActiveJob(job);
   };
 
@@ -180,7 +180,6 @@ export default function App() {
     approved: posts.filter((post) => post.status === "approved").length,
     staged: posts.filter((post) => post.status === "staged").length
   }), [posts]);
-  const approvedCount = counts.approved;
   const homePosts = posts.filter((post) => platforms[post.platform]);
   const queuePosts = filter === "all" ? posts : posts.filter((post) => post.status === filter);
   const scheduledPosts = posts.filter((post) => post.status === "staged" || (post.status === "approved" && post.scheduled_for));
@@ -193,7 +192,6 @@ export default function App() {
         <PostCard
           key={post.id}
           post={post}
-          approvedCount={approvedCount}
           onDecision={handleDecision}
           onSchedule={handleSchedule}
           onPublish={handlePublish}
