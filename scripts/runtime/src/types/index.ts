@@ -9,6 +9,58 @@ export type BrandProfile = {
   avoid: string[];
 };
 
+export type BrandKit = {
+  version: number;
+  updated_at: string;
+  name: string;
+  tagline: string;
+  audience: string;
+  tone: string;
+  positioning: string;
+  avoid: string[];
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+  };
+  typography: {
+    heading_family: string;
+    body_family: string;
+    heading_weight: number;
+    body_weight: number;
+    scale: "compact" | "balanced" | "editorial";
+  };
+  logo_url: string | null;
+};
+
+export type CampaignStatus = "draft" | "generating" | "active" | "paused" | "completed";
+
+export type Campaign = {
+  id: string;
+  name: string;
+  brief: string;
+  themes: string[];
+  platforms: Platform[];
+  start_at: string;
+  timezone: string;
+  interval_weeks: number;
+  occurrences: number;
+  creative: boolean;
+  status: CampaignStatus;
+  generated_post_ids: string[];
+  created_at: string;
+  updated_at: string;
+  last_error?: string;
+};
+
+export type CampaignSlot = {
+  occurrence: number;
+  scheduled_for: string;
+  theme: string;
+};
+
 export type GBrainContextItem = {
   id: string;
   title: string;
@@ -334,6 +386,9 @@ export type GeneratedPost = {
   editorial_candidates?: EditorialCandidateSummary[];
   review_history?: ReviewEvent[];
   visual_treatment?: VisualTreatment;
+  campaign_id?: string;
+  campaign_occurrence?: number;
+  brand_kit_version?: number;
 };
 
 export type CanvaImageRequest = {

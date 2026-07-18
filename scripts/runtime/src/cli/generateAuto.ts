@@ -3,7 +3,8 @@ import { GBrainClient } from "../gbrain/gbrainClient.ts";
 import { discoverTopicIdeas } from "../agents/topicDiscoveryAgent.ts";
 import { generatePostsForIdea, postToRecentReference } from "../agents/postGenerationAgent.ts";
 import { attachImages } from "../agents/imagePromptAgent.ts";
-import { defaultBrandProfile, savePostPack } from "../storage/postStore.ts";
+import { savePostPack } from "../storage/postStore.ts";
+import { brandProfileFromKit, loadBrandKit } from "../storage/campaignStore.ts";
 import { renderPreview } from "../render/previewRenderer.ts";
 import { getOutputDir } from "../config/runtimeMode.ts";
 import type { PostPack } from "../types/index.ts";
@@ -13,7 +14,7 @@ import { EDITORIAL_SPEC_VERSION } from "../editorial/editorialSpec.ts";
 loadEnv();
 
 export async function runGenerateAuto(): Promise<PostPack> {
-  const brand = defaultBrandProfile();
+  const brand = brandProfileFromKit(await loadBrandKit());
   const gbrain = new GBrainClient();
   const { ideas, themes } = await discoverTopicIdeas(gbrain, brand);
 

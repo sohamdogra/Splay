@@ -3,7 +3,8 @@ import { GBrainClient } from "../gbrain/gbrainClient.ts";
 import { buildTopicFromManualInput } from "../agents/topicDiscoveryAgent.ts";
 import { generatePostsForIdea } from "../agents/postGenerationAgent.ts";
 import { attachImages } from "../agents/imagePromptAgent.ts";
-import { defaultBrandProfile, savePostPack } from "../storage/postStore.ts";
+import { savePostPack } from "../storage/postStore.ts";
+import { brandProfileFromKit, loadBrandKit } from "../storage/campaignStore.ts";
 import { renderPreview } from "../render/previewRenderer.ts";
 import type { PostPack } from "../types/index.ts";
 import { defaultContentProgram } from "../editorial/contentProgram.ts";
@@ -17,7 +18,7 @@ if (!topic) {
   process.exit(1);
 }
 
-const brand = defaultBrandProfile();
+const brand = brandProfileFromKit(await loadBrandKit());
 const gbrain = new GBrainClient();
 const contexts = await gbrain.searchCompanyContext(topic);
 const idea = await buildTopicFromManualInput(topic, contexts, brand);

@@ -26,7 +26,18 @@ import {
   recordReviewDecision,
   schedulePosts
 } from "../../../scripts/runtime/src/storage/postStore.ts";
+import {
+  campaignSlots,
+  createCampaign,
+  getCampaign,
+  listCampaigns,
+  loadBrandKit,
+  saveBrandKit,
+  updateCampaign
+} from "../../../scripts/runtime/src/storage/campaignStore.ts";
 import type {
+  BrandKit,
+  Campaign,
   GeneratedPost,
   Platform,
   PostStatus,
@@ -160,6 +171,81 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         return sendJson(request, response, 200, { data: toApiPost(result.updated[0]) }, requestId);
       }
 
+      if (request.method === "GET" && pathname === `${API_PREFIX}/campaigns`) {
+        const campaigns = await listCampaigns();
+        return sendJson(request, response, 200, { data: campaigns.map(toApiCampaign) }, requestId);
+      }
+
+      if (request.method === "POST" && pathname === `${API_PREFIX}/campaigns`) {
+        refuseWhileJobIsActive(jobs);
+        const body = await readJson(request);
+        const campaign = await runMutation(() => createCampaign({
+          name: requiredString(body.name, "name", 100),
+          brief: requiredString(body.brief, "brief", 500),
+          themes: requiredStringArray(body.themes, "themes", 12, 120),
+          platforms: requiredPlatforms(body.platforms),
+          start_at: requiredFutureDate(body.start_at, "start_at"),
+          timezone: requiredTimezone(body.timezone),
+          interval_weeks: optionalInteger(body.interval_weeks, "interval_weeks", 1, 4) ?? 1,
+          occurrences: optionalInteger(body.occurrences, "occurrences", 2, 52) ?? 6,
+          creative: optionalBoolean(body.creative, "creative") ?? false
+        }));
+        return sendJson(request, response, 201, { data: toApiCampaign(campaign) }, requestId);
+      }
+
+      const campaignMatch = pathname.match(new RegExp(`^${API_PREFIX}/campaigns/([^/]+)$`));
+      if (request.method === "GET" && campaignMatch) {
+        const campaign = await getCampaign(decodeURIComponent(campaignMatch[1]));
+        if (!campaign) throw new HttpError(404, "Campaign not found.", "not_found");
+        return sendJson(request, response, 200, { data: toApiCampaign(campaign) }, requestId);
+      }
+
+      if (request.method === "PATCH" && campaignMatch) {
+        refuseWhileJobIsActive(jobs);
+        const id = decodeURIComponent(campaignMatch[1]);
+        const body = await readJson(request);
+        const status = requiredEnum(body.status, "status", ["draft", "active", "paused", "completed"] as const);
+        const campaign = await runMutation(() => updateCampaign(id, { status }));
+        return sendJson(request, response, 200, { data: toApiCampaign(campaign) }, requestId);
+      }
+
+      const campaignGenerateMatch = pathname.match(new RegExp(`^${API_PREFIX}/campaigns/([^/]+)/generate$`));
+      if (request.method === "POST" && campaignGenerateMatch) {
+        refuseWhileJobIsActive(jobs);
+        const id = decodeURIComponent(campaignGenerateMatch[1]);
+        const campaign = await getCampaign(id);
+        if (!campaign) throw new HttpError(404, "Campaign not found.", "not_found");
+        if (new Date(campaign.start_at).getTime() <= Date.now()) {
+          throw new HttpError(422, "Campaign start time must still be in the future.", "campaign_start_elapsed");
+        }
+        const script = path.join(CORE_ROOT, "src", "cli", "generateCampaign.ts");
+        const job = jobs.enqueue({
+          kind: "campaign-generate",
+          command: process.execPath,
+          args: ["--experimental-strip-types", script, "--campaign", campaign.id],
+          cwd: PROJECT_ROOT,
+          env: campaign.creative ? {
+            SOCIAL_AGENT_CREATIVE_MODE: "1",
+            SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST: "1",
+            SOCIAL_AGENT_CREATIVE_IMAGE_MODE: "gpt-canva"
+          } : undefined,
+          metadata: { campaign_id: campaign.id, occurrences: campaign.occurrences }
+        });
+        await updateCampaign(campaign.id, { status: "generating" });
+        return sendJson(request, response, 202, { data: job }, requestId);
+      }
+
+      if (request.method === "GET" && pathname === `${API_PREFIX}/brand-kit`) {
+        return sendJson(request, response, 200, { data: await loadBrandKit() }, requestId);
+      }
+
+      if (request.method === "PUT" && pathname === `${API_PREFIX}/brand-kit`) {
+        refuseWhileJobIsActive(jobs);
+        const body = await readJson(request);
+        const kit = await runMutation(() => saveBrandKit(parseBrandKit(body)));
+        return sendJson(request, response, 200, { data: kit }, requestId);
+      }
+
       if (request.method === "GET" && pathname === `${API_PREFIX}/jobs`) {
         return sendJson(request, response, 200, { data: jobs.list() }, requestId);
       }
@@ -272,7 +358,8 @@ function coreCommand(kind: JobCommand["kind"], scriptName: string): JobCommand {
 
 async function assertPublishingReady(): Promise<void> {
   const pack = await loadPostPack();
-  const approved = pack.posts.filter((post) => post.status === "approved");
+  const activeCampaignIds = new Set((await listCampaigns()).filter((campaign) => campaign.status === "active").map((campaign) => campaign.id));
+  const approved = pack.posts.filter((post) => post.status === "approved" && (!post.campaign_id || activeCampaignIds.has(post.campaign_id)));
   if (approved.length === 0) throw new HttpError(409, "There are no approved posts to queue.", "nothing_to_publish");
   if (isTestMode()) return;
 
@@ -307,6 +394,17 @@ function toApiPost(post: GeneratedPost): Record<string, unknown> {
       self: `${API_PREFIX}/posts/${encodeURIComponent(post.id)}`,
       decision: `${API_PREFIX}/posts/${encodeURIComponent(post.id)}/decisions`,
       schedule: `${API_PREFIX}/posts/${encodeURIComponent(post.id)}/schedule`
+    }
+  };
+}
+
+function toApiCampaign(campaign: Campaign): Record<string, unknown> {
+  return {
+    ...campaign,
+    slots: campaignSlots(campaign),
+    links: {
+      self: `${API_PREFIX}/campaigns/${encodeURIComponent(campaign.id)}`,
+      generate: `${API_PREFIX}/campaigns/${encodeURIComponent(campaign.id)}/generate`
     }
   };
 }
@@ -398,6 +496,92 @@ function optionalBoolean(value: unknown, field: string): boolean | undefined {
   if (value === undefined) return undefined;
   if (typeof value === "boolean") return value;
   throw new HttpError(400, `${field} must be a boolean.`, "invalid_request");
+}
+
+function optionalInteger(value: unknown, field: string, minimum: number, maximum: number): number | undefined {
+  if (value === undefined) return undefined;
+  if (!Number.isInteger(value) || Number(value) < minimum || Number(value) > maximum) {
+    throw new HttpError(400, `${field} must be an integer from ${minimum} to ${maximum}.`, "invalid_request");
+  }
+  return Number(value);
+}
+
+function requiredStringArray(value: unknown, field: string, maxItems: number, maxLength: number): string[] {
+  if (!Array.isArray(value) || value.length > maxItems) {
+    throw new HttpError(400, `${field} must be an array with at most ${maxItems} items.`, "invalid_request");
+  }
+  return value.map((item, index) => requiredString(item, `${field}[${index}]`, maxLength));
+}
+
+function requiredPlatforms(value: unknown): Platform[] {
+  const platforms = requiredStringArray(value, "platforms", 2, 20);
+  if (platforms.length === 0 || platforms.some((platform) => platform !== "linkedin" && platform !== "x")) {
+    throw new HttpError(400, "platforms must contain linkedin, x, or both.", "invalid_request");
+  }
+  return [...new Set(platforms)] as Platform[];
+}
+
+function requiredFutureDate(value: unknown, field: string): string {
+  const text = requiredString(value, field, 100);
+  if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(text)) {
+    throw new HttpError(400, `${field} must include an explicit timezone.`, "invalid_request");
+  }
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+    throw new HttpError(400, `${field} must be a valid future date.`, "invalid_request");
+  }
+  return date.toISOString();
+}
+
+function requiredTimezone(value: unknown): string {
+  const timezone = requiredString(value, "timezone", 100);
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
+    return timezone;
+  } catch {
+    throw new HttpError(400, "timezone must be a valid IANA timezone.", "invalid_request");
+  }
+}
+
+function parseBrandKit(body: Record<string, unknown>): Omit<BrandKit, "version" | "updated_at"> {
+  const colors = asRecord(body.colors, "colors");
+  const typography = asRecord(body.typography, "typography");
+  return {
+    name: requiredString(body.name, "name", 80),
+    tagline: requiredString(body.tagline, "tagline", 160),
+    audience: requiredString(body.audience, "audience", 500),
+    tone: requiredString(body.tone, "tone", 500),
+    positioning: requiredString(body.positioning, "positioning", 500),
+    avoid: requiredStringArray(body.avoid, "avoid", 20, 100),
+    colors: {
+      primary: requiredColor(colors.primary, "colors.primary"),
+      secondary: requiredColor(colors.secondary, "colors.secondary"),
+      accent: requiredColor(colors.accent, "colors.accent"),
+      background: requiredColor(colors.background, "colors.background"),
+      text: requiredColor(colors.text, "colors.text")
+    },
+    typography: {
+      heading_family: requiredString(typography.heading_family, "typography.heading_family", 80),
+      body_family: requiredString(typography.body_family, "typography.body_family", 80),
+      heading_weight: optionalInteger(typography.heading_weight, "typography.heading_weight", 100, 900) ?? 400,
+      body_weight: optionalInteger(typography.body_weight, "typography.body_weight", 100, 900) ?? 400,
+      scale: requiredEnum(typography.scale, "typography.scale", ["compact", "balanced", "editorial"] as const)
+    },
+    logo_url: body.logo_url === null || body.logo_url === "" ? null : requiredString(body.logo_url, "logo_url", 500)
+  };
+}
+
+function requiredColor(value: unknown, field: string): string {
+  const color = requiredString(value, field, 20);
+  if (!/^#[0-9a-f]{6}$/i.test(color)) throw new HttpError(400, `${field} must be a six-digit hex color.`, "invalid_request");
+  return color.toUpperCase();
+}
+
+function asRecord(value: unknown, field: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new HttpError(400, `${field} must be an object.`, "invalid_request");
+  }
+  return value as Record<string, unknown>;
 }
 
 function requiredEnum<const T extends readonly string[]>(value: unknown, field: string, values: T): T[number] {

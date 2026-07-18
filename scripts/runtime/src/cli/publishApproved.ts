@@ -6,15 +6,17 @@ import { applyPublishResult, loadPostPack } from "../storage/postStore.ts";
 import { publishWithHosting } from "../publishers/publishWithHosting.ts";
 import { renderPreview } from "../render/previewRenderer.ts";
 import { getOutputDir, isTestMode } from "../config/runtimeMode.ts";
+import { listCampaigns } from "../storage/campaignStore.ts";
 
 loadEnv();
 
 const pack = await loadPostPack();
-const approved = pack.posts.filter((post) => post.status === "approved");
+const activeCampaignIds = new Set((await listCampaigns()).filter((campaign) => campaign.status === "active").map((campaign) => campaign.id));
+const approved = pack.posts.filter((post) => post.status === "approved" && (!post.campaign_id || activeCampaignIds.has(post.campaign_id)));
 const publisher = selectPublisher();
 
 if (approved.length === 0) {
-  console.log("No approved posts to stage.");
+  console.log("No eligible approved posts to stage. Paused campaign posts remain local.");
   process.exit(0);
 }
 

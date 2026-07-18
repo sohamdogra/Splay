@@ -1,12 +1,14 @@
 # Splay
 
-Frontend-ready application backend for generating, reviewing, visually validating, scheduling, publishing, and learning from Splay LinkedIn/X posts.
+Local-first application for generating, reviewing, visually validating, scheduling, publishing, and learning from Splay LinkedIn/X posts. The React frontend lives in `apps/web` and uses the HTTP API in `apps/api`.
 
-This repository no longer depends on being installed or invoked as a Codex skill. The editorial and publishing runtime is preserved as the domain core, while `apps/api` exposes a stable HTTP/JSON contract for a future frontend. No frontend is included yet.
+This repository no longer depends on being installed or invoked as a Codex skill. The editorial and publishing runtime is preserved as the domain core, while `apps/api` exposes the stable HTTP/JSON contract consumed by the frontend.
 
 ## What changed
 
 - A versioned API now exposes posts, media, review decisions, scheduling, generation jobs, publishing jobs, metrics, and feedback operations.
+- Recurring campaigns turn one brief into timezone-aware weekly draft slots that can be reviewed and scheduled through Buffer.
+- A versioned brand kit stores the typography, palette, audience, voice, positioning, and logo settings used by new generation runs.
 - Long-running and output-mutating jobs are serialized so a frontend cannot accidentally run conflicting generations or publishes.
 - Publishing is fail-closed: it requires an explicit confirmation plus valid Buffer and Convex storage configuration.
 - Local-only networking, origin allowlisting, optional bearer authentication, bounded request bodies, and safe media paths are built in.
@@ -26,6 +28,7 @@ Install the application/Convex tooling and the existing core dependencies:
 ```sh
 npm install
 npm --prefix scripts/runtime install
+npm --prefix apps/web install
 ```
 
 The API uses Node's built-in HTTP server. The root Convex dependency serves the backend functions and the service-to-service upload client.
@@ -66,11 +69,52 @@ npm run dev
 
 The default address is `http://127.0.0.1:4173`.
 
+## Run the frontend
+
+Start the API in one terminal:
+
+```sh
+npm run dev
+```
+
+Start the frontend in a second terminal:
+
+```sh
+npm run dev:web
+```
+
+Open `http://127.0.0.1:5173`. Vite proxies API and media requests to the local API on port 4173. If `SPLAY_API_TOKEN` is configured, open **Settings** and enter it there; the token is kept only for the current browser tab.
+
+For a production frontend build:
+
+```sh
+npm run build:web
+```
+
+The generated static files are written to `apps/web/dist`. To point a deployed frontend at a separately hosted API, set `VITE_SPLAY_API_URL` when building.
+
+## Weekly campaign workflow
+
+Open **Campaigns** in the frontend, then:
+
+1. Set the campaign brief, optional weekly themes, platforms, first publish time, cadence, and number of weeks.
+2. Create the campaign and choose **Generate weekly drafts**. Splay generates one platform draft for every future slot and preserves the selected local time across daylight-saving changes.
+3. Review and approve the generated posts in **Review queue**.
+4. Use the existing confirm-gated publish action. Buffer receives each approved post as `customScheduled` with its exact future timestamp.
+
+Pausing a campaign keeps its approved posts out of the Buffer publishing job. Campaign generation never auto-approves or silently publishes posts.
+
+Open **Brand kit** to edit the live typography and palette preview plus the generation voice, audience, positioning, avoid-list, tagline, and logo URL. Every save creates a new local version in `output/brand-kit.json`; campaign posts record the version used to generate them.
+
 Useful endpoints:
 
 - `GET /api/v1/health`
 - `GET /api/v1/posts?platform=linkedin&status=draft`
 - `GET /api/v1/posts/:id`
+- `GET|POST /api/v1/campaigns`
+- `GET|PATCH /api/v1/campaigns/:id`
+- `POST /api/v1/campaigns/:id/generate`
+- `GET|PUT /api/v1/brand-kit`
 - `POST /api/v1/posts/:id/decisions`
 - `PUT /api/v1/posts/:id/schedule`
 - `POST /api/v1/jobs/generate`
@@ -161,6 +205,12 @@ npm run check
 npm run db:generate
 ```
 
+Run only the frontend tests with:
+
+```sh
+npm run test:web
+```
+
 Safe core generation remains available through the nested runtime:
 
 ```sh
@@ -173,6 +223,7 @@ Test mode writes to `output/test`, disables external publishing/database access,
 
 ```text
 apps/api/              HTTP application boundary and OpenAPI contract
+apps/web/              React + Vite frontend
 convex/                Convex schema and protected media upload mutations
 scripts/runtime/       Existing editorial, visual, publishing, and analytics core
 scripts/local-gbrain-* Credential-free local GBrain access

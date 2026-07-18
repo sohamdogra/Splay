@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
-export type JobKind = "generate" | "publish-approved" | "metrics-collect" | "metrics-score" | "feedback-generate";
+export type JobKind = "generate" | "campaign-generate" | "publish-approved" | "metrics-collect" | "metrics-score" | "feedback-generate";
 
 export type JobCommand = {
   kind: JobKind;

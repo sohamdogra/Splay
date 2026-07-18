@@ -93,6 +93,58 @@ test("rejects untrusted browser origins", async () => {
   assert.equal((await response.json()).error.code, "origin_forbidden");
 });
 
+test("persists weekly campaigns with future Buffer schedule slots", async () => {
+  const startAt = new Date(Date.now() + 3 * 86_400_000).toISOString();
+  const response = await fetch(`${baseUrl}/api/v1/campaigns`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({
+      name: "Six weeks of source-backed diligence",
+      brief: "Show how source-cited deal context prevents repeated reconstruction work",
+      themes: ["handoffs", "buyer trackers", "meeting prep"],
+      platforms: ["linkedin"],
+      start_at: startAt,
+      timezone: "America/Los_Angeles",
+      interval_weeks: 1,
+      occurrences: 6,
+      creative: false
+    })
+  });
+  assert.equal(response.status, 201);
+  const campaign = (await response.json()).data;
+  assert.equal(campaign.slots.length, 6);
+  assert.equal(campaign.slots[0].scheduled_for, startAt);
+  assert.equal(new Date(campaign.slots[1].scheduled_for).getTime() - new Date(startAt).getTime(), 7 * 86_400_000);
+
+  const list = await fetch(`${baseUrl}/api/v1/campaigns`, { headers: { authorization: "Bearer test-token" } });
+  assert.equal((await list.json()).data[0].name, "Six weeks of source-backed diligence");
+});
+
+test("persists a versioned brand kit", async () => {
+  const response = await fetch(`${baseUrl}/api/v1/brand-kit`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({
+      name: "Splay",
+      tagline: "Deal context that survives the close.",
+      audience: "deal teams",
+      tone: "direct, credible, source-backed",
+      positioning: "Reviewable deal context.",
+      avoid: ["generic AI hype"],
+      colors: { primary: "#0f5eff", secondary: "#0a3db8", accent: "#dce7ff", background: "#fbfcfe", text: "#1f2937" },
+      typography: { heading_family: "Brawler", body_family: "Instrument Sans", heading_weight: 400, body_weight: 400, scale: "editorial" },
+      logo_url: null
+    })
+  });
+  assert.equal(response.status, 200);
+  const kit = (await response.json()).data;
+  assert.equal(kit.version, 2);
+  assert.equal(kit.colors.primary, "#0F5EFF");
+
+  const saved = await fetch(`${baseUrl}/api/v1/brand-kit`, { headers: { authorization: "Bearer test-token" } });
+  assert.equal((await saved.json()).data.typography.heading_family, "Brawler");
+});
+
 function authHeaders(): Record<string, string> {
   return {
     authorization: "Bearer test-token",

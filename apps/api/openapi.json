@@ -32,7 +32,7 @@
         "required": ["id", "kind", "status", "created_at", "output"],
         "properties": {
           "id": { "type": "string", "format": "uuid" },
-          "kind": { "type": "string", "enum": ["generate", "publish-approved", "metrics-collect", "metrics-score", "feedback-generate"] },
+          "kind": { "type": "string", "enum": ["generate", "campaign-generate", "publish-approved", "metrics-collect", "metrics-score", "feedback-generate"] },
           "status": { "type": "string", "enum": ["queued", "running", "succeeded", "failed", "cancelled"] },
           "metadata": { "type": "object" },
           "created_at": { "type": "string", "format": "date-time" },
@@ -41,6 +41,40 @@
           "exit_code": { "type": "integer" },
           "output": { "type": "string" },
           "error": { "type": "string" }
+        }
+      },
+      "Campaign": {
+        "type": "object",
+        "required": ["id", "name", "brief", "platforms", "start_at", "timezone", "interval_weeks", "occurrences", "status", "slots"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "brief": { "type": "string" },
+          "themes": { "type": "array", "items": { "type": "string" } },
+          "platforms": { "type": "array", "items": { "type": "string", "enum": ["linkedin", "x"] } },
+          "start_at": { "type": "string", "format": "date-time" },
+          "timezone": { "type": "string", "example": "America/Los_Angeles" },
+          "interval_weeks": { "type": "integer", "minimum": 1, "maximum": 4 },
+          "occurrences": { "type": "integer", "minimum": 2, "maximum": 52 },
+          "creative": { "type": "boolean" },
+          "status": { "type": "string", "enum": ["draft", "generating", "active", "paused", "completed"] },
+          "slots": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "BrandKit": {
+        "type": "object",
+        "required": ["name", "tagline", "audience", "tone", "positioning", "avoid", "colors", "typography"],
+        "properties": {
+          "version": { "type": "integer" },
+          "name": { "type": "string" },
+          "tagline": { "type": "string" },
+          "audience": { "type": "string" },
+          "tone": { "type": "string" },
+          "positioning": { "type": "string" },
+          "avoid": { "type": "array", "items": { "type": "string" } },
+          "colors": { "type": "object" },
+          "typography": { "type": "object" },
+          "logo_url": { "type": ["string", "null"] }
         }
       }
     }
@@ -123,6 +157,25 @@
         },
         "responses": { "200": { "description": "Updated post" }, "422": { "description": "Invalid schedule" } }
       }
+    },
+    "/api/v1/campaigns": {
+      "get": { "summary": "List recurring campaigns and their future weekly slots", "responses": { "200": { "description": "Campaign collection" } } },
+      "post": {
+        "summary": "Create a recurring campaign",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Campaign" } } } },
+        "responses": { "201": { "description": "Campaign created" }, "400": { "description": "Invalid campaign" } }
+      }
+    },
+    "/api/v1/campaigns/{id}": {
+      "get": { "summary": "Read a campaign", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Campaign" }, "404": { "description": "Not found" } } },
+      "patch": { "summary": "Pause, resume, or complete a campaign", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated campaign" } } }
+    },
+    "/api/v1/campaigns/{id}/generate": {
+      "post": { "summary": "Generate reviewable drafts for every future campaign slot", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "202": { "description": "Campaign generation queued" }, "422": { "description": "Campaign start elapsed" } } }
+    },
+    "/api/v1/brand-kit": {
+      "get": { "summary": "Read the active brand kit", "responses": { "200": { "description": "Brand kit" } } },
+      "put": { "summary": "Save a new version of the brand kit", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BrandKit" } } } }, "responses": { "200": { "description": "Saved brand kit" } } }
     },
     "/api/v1/jobs": {
       "get": {

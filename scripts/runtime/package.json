@@ -7,6 +7,7 @@
   "scripts": {
     "generate": "node --experimental-strip-types src/cli/generate.ts",
     "generate:auto": "node --experimental-strip-types src/cli/generateAuto.ts",
+    "campaign:generate": "node --experimental-strip-types src/cli/generateCampaign.ts",
     "generate:creative": "SOCIAL_AGENT_CREATIVE_MODE=1 SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST=1 SOCIAL_AGENT_CREATIVE_IMAGE_MODE=gpt-canva node --experimental-strip-types src/cli/generate.ts",
     "generate:creative:auto": "SOCIAL_AGENT_CREATIVE_MODE=1 SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST=1 SOCIAL_AGENT_CREATIVE_IMAGE_MODE=gpt-canva node --experimental-strip-types src/cli/generateAuto.ts",
     "approve": "node --experimental-strip-types src/cli/approve.ts",
