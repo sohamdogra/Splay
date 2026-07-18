@@ -34,9 +34,9 @@ test("selects a supported, specific candidate and keeps the runner-ups", () => {
     },
     evidenceSupplied: true,
     candidates: [
-      { angle: "operator_observation", text: "Workflows are changing. Arvya is an innovative platform.", hashtags: [] },
+      { angle: "operator_observation", text: "Workflows are changing. Splay is an innovative platform.", hashtags: [] },
       { angle: "boundary_condition", text: "A buyer reply in email does not make the Excel tracker current. The useful test is whether the next banker can move without rebuilding the update.", hashtags: [] },
-      { angle: "product_proof", text: "The buyer replied. The Excel tracker is still stale. Arvya proposes the tracker change for a banker to review before writeback.", hashtags: [] }
+      { angle: "product_proof", text: "The buyer replied. The Excel tracker is still stale. Splay proposes the tracker change for a banker to review before writeback.", hashtags: [] }
     ]
   });
 

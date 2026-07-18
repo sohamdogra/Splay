@@ -105,11 +105,11 @@ The importer preserves the original `PostPack` fields and adds optional `editori
 
 ### Editorial gate at import
 
-`import-drafts` fails closed when the topic, post text, or `image_copy` contains internal jargon (banned list in `references/editorial.md`), uses `Arvya.io`, breaks the image-copy word budgets (headline 3-8 words, support 5-12 words), or gives a LinkedIn post fewer than 3 or more than 4 unique hashtags. Fix the copy and re-import. `--skip-editorial-gate` converts the errors to warnings for a deliberate, explained exception only.
+`import-drafts` fails closed when the topic, post text, or `image_copy` contains internal jargon (banned list in `references/editorial.md`), uses `Splay.io`, breaks the image-copy word budgets (headline 3-8 words, support 5-12 words), or gives a LinkedIn post fewer than 3 or more than 4 unique hashtags. Fix the copy and re-import. `--skip-editorial-gate` converts the errors to warnings for a deliberate, explained exception only.
 
-`image_copy` is carried onto each post; `attach-background-images` stamps those exact lines with the bundled official Arvya logo.
+`image_copy` is carried onto each post; `attach-background-images` stamps those exact lines with the bundled official Splay logo.
 
-`linkedin_mentions` is optional. Arvya itself is resolved automatically from the connected company identity. Other named people or organizations are annotated only from verified post-level records or the configured registry; unresolved names are never guessed. The review preview renders the exact LinkedIn publish text and reports the verified annotation count.
+`linkedin_mentions` is optional. Splay is resolved automatically only when the verified `LINKEDIN_BRAND_*` organization settings are configured. Other named people or organizations are annotated only from verified post-level records or the configured registry; unresolved names are never guessed. The review preview renders the exact LinkedIn publish text and reports the verified annotation count.
 
 ## Full Final Image Map (Legacy/Manual Only)
 
@@ -120,7 +120,7 @@ Use this shape only when the complete image was already composed with exact sour
   "post-id-1": "/absolute/path/to/final-social-post.png",
   "post-id-2": {
     "path": "/absolute/path/to/final-social-post-2.png",
-    "prompt": "Create a 1200x675 dark navy-blue Arvya social card with layered flowing blue waves, restrained gold detail, and the exact gated headline and support text."
+    "prompt": "Create a 1200x675 dark navy-blue Splay social card with layered flowing blue waves, one restrained cobalt accent, and the exact gated headline and support text."
   }
 }
 ```
@@ -173,7 +173,7 @@ or an array:
   {
     "post_id": "post-id-1",
     "background_image_path": "/absolute/path/to/generated-background.png",
-    "alt_text": "Arvya social graphic..."
+    "alt_text": "Splay social graphic..."
   }
 ]
 ```

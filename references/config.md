@@ -8,7 +8,7 @@ Keep secrets in the shell environment or local `.env`; never commit them to the 
 - `GBRAIN_CONTEXT_FILE`: local context JSON path.
 - `GBRAIN_MCP_HTTP_URL`: optional JSON-RPC HTTP bridge.
 - `GBRAIN_MCP_BRIDGE_PATH`: optional stdio bridge path. The application defaults to `scripts/local-gbrain-mcp.py`, which reads the synced local checkout without transmitting credentials.
-- `GBRAIN_LOCAL_REPO`: clean, sparse local `arvya-gbrain` cache used by `scripts/local-gbrain-mcp.py` (default `<project>/.gbrain-cache`). Do not point autonomous runs at a developer worktree that may contain uncommitted files.
+- `GBRAIN_LOCAL_REPO`: clean, sparse local `splay-gbrain` cache used by `scripts/local-gbrain-mcp.py` (default `<project>/.gbrain-cache`). Do not point autonomous runs at a developer worktree that may contain uncommitted files.
 - `GBRAIN_LOCAL_MAX_STALENESS_HOURS`: maximum allowed age of the checkout's latest commit before local retrieval fails closed (default `48`).
 - `GBRAIN_MCP_TIMEOUT_MS`: bridge timeout.
 - `GBRAIN_MCP_*_METHOD`: method name overrides for actual MCP tool names.
@@ -41,12 +41,13 @@ Local images are uploaded through a one-time Convex upload URL. Buffer receives 
 ## Brand
 
 - `BRAND_NAME`, `BRAND_AUDIENCE`, `BRAND_TONE`: optional brand profile overrides.
-- `ARVYA_REFERENCE_ASSET_DIR`: optional local visual reference exports for Canva briefs.
+- `SPLAY_REFERENCE_ASSET_DIR`: optional local visual reference exports for Canva briefs.
 
-The application includes Arvya brand assets under `assets/brand-kit` and a renderer copy under `scripts/runtime/brand-kit`.
+The application includes Splay brand assets under `assets/brand-kit` and a renderer copy under `scripts/runtime/brand-kit`.
 
 ## LinkedIn Mentions
 
 - `LINKEDIN_MENTION_REGISTRY_PATH`: optional path to a JSON array (or `{ "entities": [] }`) of verified people and organizations. Without this setting, the publisher reads `output/linkedin-mentions.json` when present.
-- Arvya is built in with the verified organization URN `urn:li:organization:114174190`; it does not need to be repeated in the registry.
+- `LINKEDIN_BRAND_ORGANIZATION_ID` and `LINKEDIN_BRAND_VANITY_NAME`: optional verified Splay organization identity. Configure both to enable automatic brand mentions; no organization ID is hard-coded.
+- `LINKEDIN_BRAND_LOCALIZED_NAME` and `LINKEDIN_BRAND_URL`: optional display-name and company-page overrides for the configured organization.
 - Each extra entity requires `aliases`, `id`, `link`, `entity`, `vanityName`, `localizedName`, and `kind` (`person` or `organization`). Publishing fails closed when a configured registry is malformed.

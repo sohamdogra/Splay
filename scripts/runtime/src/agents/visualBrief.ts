@@ -56,7 +56,7 @@ export function buildExtractiveBrief(post: GeneratedPost): VisualBrief {
     points: contentMode === "principles" || contentMode === "relationship" ? evidence : [],
     steps: contentMode === "workflow" ? evidence : [],
     contrast,
-    source_cue: post.source_context.gbrain_references.length > 0 ? "FROM THE WORK" : "ARVYA TAKE",
+    source_cue: post.source_context.gbrain_references.length > 0 ? "FROM THE WORK" : "SPLAY TAKE",
     validation_status: "extractive_fallback"
   };
 }
@@ -416,7 +416,7 @@ function supportFromHeadline(headline: string): string {
 }
 
 function fitSourceCue(value: unknown, post: GeneratedPost): string {
-  const fallback = post.source_context.gbrain_references.length > 0 ? "FROM THE WORK" : "ARVYA TAKE";
+  const fallback = post.source_context.gbrain_references.length > 0 ? "FROM THE WORK" : "SPLAY TAKE";
   const cleaned = cleanVisualLine(value);
   if (!cleaned || hasRoboticPublicCopy(cleaned)) return fallback;
   return fitVisualText(cleaned, MAX_SOURCE_CUE, MAX_SOURCE_CUE_WORDS) || fallback;
@@ -704,7 +704,7 @@ const preferredTerms = [
   "decision trail",
   "follow-through"
 ];
-const allowedCapitalized = new Set(["Arvya", "AI", "CRM", "POV", "From", "Work", "Take", "Deal", "Context"]);
+const allowedCapitalized = new Set(["Splay", "AI", "CRM", "POV", "From", "Work", "Take", "Deal", "Context"]);
 const roboticPublicPhrases = INTERNAL_JARGON_PHRASES;
 const stopWords = new Set(["the", "and", "for", "that", "with", "from", "into", "this", "are", "not", "but"]);
 const visualStopWords = new Set([

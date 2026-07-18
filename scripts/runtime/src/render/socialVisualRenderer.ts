@@ -24,17 +24,17 @@ const PRODUCT_X = 585;
 const PRODUCT_Y = 145;
 const PRODUCT_WIDTH = WIDTH - PRODUCT_X - GUTTER;
 const PRODUCT_HEIGHT = 430;
-const BRAND_SIGNATURE = "Arvya";
-const CHARCOAL = "#151A23";
-const PANEL = "#252A31";
+const BRAND_SIGNATURE = "Splay";
+const CHARCOAL = "#1F2937";
+const PANEL = "#374151";
 const NAVY_PANEL = "#102B40";
-const MIST = "#F4F4F5";
+const MIST = "#F3F6FA";
 const WHITE = "#FFFFFF";
-const GOLD = "#CF9742";
-const BLUE = "#4EA3D3";
+const ACCENT = "#0F5EFF";
+const BLUE = "#60A5FA";
 const DEEP_NAVY = "#0B2235";
-const MUTED_DARK = "#D3D6D9";
-const MUTED_LIGHT = "#4F565F";
+const MUTED_DARK = "#D1D5DB";
+const MUTED_LIGHT = "#4B5563";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 type TextStyle = "display" | "sans";
@@ -151,7 +151,7 @@ export async function renderCuratedVisual(
   const scene = { ...rawScene, texts: rawScene.texts.filter((text) => text.text.trim().length > 0) };
   const [fontCss, logoHref, backgroundHref, productHref] = await Promise.all([
     embeddedFontCss(),
-    embeddedLogo(scene.darkSignature ? "gold" : "charcoal"),
+    embeddedLogo(scene.darkSignature ? "blue" : "charcoal"),
     backgroundImagePath ? embeddedAsset(outputDir, backgroundImagePath) : Promise.resolve(null),
     lockedVisual.template_family === "product-proof" && post.approved_visual_asset
       ? embeddedAbsoluteAsset(post.approved_visual_asset)
@@ -259,16 +259,16 @@ function buildScene(post: GeneratedPost, visual: VisualMetadata): Scene {
 function darkThesis(headline: string, supporting: string, sourceCue: string): Scene {
   const structuralDecorations = `
       <line x1="${GUTTER}" x2="${WIDTH - GUTTER}" y1="137" y2="137" stroke="${MIST}" stroke-opacity=".1" stroke-width="1"/>
-      <line x1="${GUTTER}" x2="248" y1="137" y2="137" stroke="${GOLD}" stroke-opacity=".9" stroke-width="2"/>
-      <line x1="${GUTTER}" x2="${GUTTER}" y1="177" y2="520" stroke="${GOLD}" stroke-width="3"/>
-      <circle cx="${GUTTER}" cy="177" r="7" fill="${GOLD}"/>`;
+      <line x1="${GUTTER}" x2="248" y1="137" y2="137" stroke="${ACCENT}" stroke-opacity=".9" stroke-width="2"/>
+      <line x1="${GUTTER}" x2="${GUTTER}" y1="177" y2="520" stroke="${ACCENT}" stroke-width="3"/>
+      <circle cx="${GUTTER}" cy="177" r="7" fill="${ACCENT}"/>`;
   return {
     background: darkField("32%", "74%"),
     decorations: `${structuralDecorations}
       <path d="M-90 555 C190 465 420 630 720 545 S1040 470 1290 520" fill="none" stroke="${BLUE}" stroke-opacity=".62" stroke-width="4"/>
-      <path d="M-110 595 C170 510 460 650 750 585 S1050 520 1310 565" fill="none" stroke="${GOLD}" stroke-opacity=".42" stroke-width="3"/>
+      <path d="M-110 595 C170 510 460 650 750 585 S1050 520 1310 565" fill="none" stroke="${ACCENT}" stroke-opacity=".42" stroke-width="3"/>
       <path d="M-80 635 C210 565 490 675 780 625 S1080 580 1300 610" fill="none" stroke="${BLUE}" stroke-opacity=".3" stroke-width="2"/>
-      <circle cx="120" cy="550" r="7" fill="${GOLD}"/><circle cx="455" cy="605" r="6" fill="${BLUE}"/><circle cx="805" cy="575" r="7" fill="${GOLD}"/><circle cx="1090" cy="505" r="6" fill="${BLUE}"/>
+      <circle cx="120" cy="550" r="7" fill="${ACCENT}"/><circle cx="455" cy="605" r="6" fill="${BLUE}"/><circle cx="805" cy="575" r="7" fill="${ACCENT}"/><circle cx="1090" cy="505" r="6" fill="${BLUE}"/>
       <g opacity=".18">${nodePattern(900, 105, 250, 210)}</g>`,
     generatedDecorations: structuralDecorations,
     texts: [
@@ -293,13 +293,13 @@ function compactPrimaryCopy(texts: FittedSceneText[], visual: VisualMetadata): F
 
 function lightThesis(headline: string, supporting: string): Scene {
   return {
-    background: `<rect width="${WIDTH}" height="${HEIGHT}" fill="${MIST}"/><circle cx="1030" cy="150" r="240" fill="#FFF1DB"/>`,
+    background: `<rect width="${WIDTH}" height="${HEIGHT}" fill="${MIST}"/><circle cx="1030" cy="150" r="240" fill="#DBEAFE"/>`,
     decorations: `
       <path d="M96 580 H1104" stroke="${CHARCOAL}" stroke-opacity=".2"/>
-      <path d="M965 70 C1080 145 1090 270 960 345" fill="none" stroke="${GOLD}" stroke-width="3"/>
+      <path d="M965 70 C1080 145 1090 270 960 345" fill="none" stroke="${ACCENT}" stroke-width="3"/>
       <g opacity=".13">${nodePattern(90, 430, 260, 190, CHARCOAL)}</g>`,
     texts: [
-      label("ARVYA TAKE", GUTTER, 160, CONTENT_WIDTH, MUTED_LIGHT, "center"),
+      label("SPLAY TAKE", GUTTER, 160, CONTENT_WIDTH, MUTED_LIGHT, "center"),
       display(headline, GUTTER, 205, CONTENT_WIDTH, 66, 2, CHARCOAL, "center"),
       body(supporting, 190, 405, 820, 30, 2, MUTED_LIGHT, "center")
     ],
@@ -313,8 +313,8 @@ function splitContrast(brief: VisualMetadata["brief"]): Scene {
   return {
     background: `<rect width="600" height="${HEIGHT}" fill="${CHARCOAL}"/><rect x="600" width="600" height="${HEIGHT}" fill="${MIST}"/>`,
     decorations: `
-      <rect x="588" width="24" height="${HEIGHT}" fill="${GOLD}"/>
-      <circle cx="600" cy="555" r="52" fill="${GOLD}"/>
+      <rect x="588" width="24" height="${HEIGHT}" fill="${ACCENT}"/>
+      <circle cx="600" cy="555" r="52" fill="${ACCENT}"/>
       <path d="M145 545 H500 M700 545 H1055" stroke="${BLUE}" stroke-opacity=".45" stroke-width="2"/>`,
     texts: [
       label("WHAT TEAMS SEE", GUTTER, 175, 410, MUTED_DARK),
@@ -332,14 +332,14 @@ function evidenceCard(headline: string, supporting: string, sourceCue: string): 
     background: darkField("76%", "24%"),
     decorations: `
       <rect x="260" y="130" width="844" height="480" rx="10" fill="${NAVY_PANEL}" stroke="${BLUE}" stroke-opacity=".24"/>
-      <rect x="260" y="130" width="14" height="480" fill="${GOLD}"/>
+      <rect x="260" y="130" width="14" height="480" fill="${ACCENT}"/>
       <path d="M320 505 H1035 M320 545 H930" stroke="${MIST}" stroke-opacity=".16" stroke-width="2"/>
       <circle cx="205" cy="530" r="58" fill="none" stroke="${BLUE}" stroke-opacity=".34" stroke-width="2"/>`,
     texts: [
       label("THE TAKEAWAY", 320, 170, 720, MUTED_DARK),
       display(headline, 320, 215, 720, 58, 2, WHITE),
       body(supporting, 320, 375, 720, 30, 2, MUTED_DARK),
-      label(sourceCue, 320, 545, 720, GOLD)
+      label(sourceCue, 320, 545, 720, BLUE)
     ],
     darkSignature: true
   };
@@ -353,11 +353,11 @@ function principles(headline: string, items: VisualEvidenceItem[]): Scene {
   ];
   normalized.forEach((item, index) => {
     const left = GUTTER + index * 336;
-    texts.push(label(`0${index + 1}`, left + 24, 405, 80, "#8A5300"));
+    texts.push(label(`0${index + 1}`, left + 24, 405, 80, ACCENT));
     texts.push(body(item.text, left + 24, 447, 280, 27, 2, CHARCOAL));
   });
   return {
-    background: `<rect width="${WIDTH}" height="${HEIGHT}" fill="${MIST}"/><rect x="0" y="0" width="24" height="${HEIGHT}" fill="${GOLD}"/>`,
+    background: `<rect width="${WIDTH}" height="${HEIGHT}" fill="${MIST}"/><rect x="0" y="0" width="24" height="${HEIGHT}" fill="${ACCENT}"/>`,
     decorations: `
       <rect x="96" y="380" width="304" height="210" rx="12" fill="${WHITE}" stroke="${CHARCOAL}" stroke-opacity=".14"/>
       <rect x="432" y="380" width="304" height="210" rx="12" fill="${WHITE}" stroke="${CHARCOAL}" stroke-opacity=".14"/>
@@ -376,17 +376,17 @@ function workflow(headline: string, items: VisualEvidenceItem[]): Scene {
   ];
   normalized.forEach((item, index) => {
     const left = 150 + index * 340;
-    texts.push(label(`0${index + 1}`, left, 405, 80, GOLD));
+    texts.push(label(`0${index + 1}`, left, 405, 80, BLUE));
     texts.push(body(item.text, left, 452, 270, 27, 2, MIST));
   });
   return {
     background: darkField("24%", "78%"),
     decorations: `
       <line x1="150" x2="1050" y1="375" y2="375" stroke="${BLUE}" stroke-opacity=".58" stroke-width="3"/>
-      <circle cx="150" cy="375" r="18" fill="${GOLD}"/>
-      <circle cx="490" cy="375" r="18" fill="${CHARCOAL}" stroke="${GOLD}" stroke-width="4"/>
-      <circle cx="830" cy="375" r="18" fill="${CHARCOAL}" stroke="${GOLD}" stroke-width="4"/>
-      <path d="M830 590 C950 610 1050 590 1120 545" fill="none" stroke="${GOLD}" stroke-opacity=".24" stroke-width="2"/>`,
+      <circle cx="150" cy="375" r="18" fill="${ACCENT}"/>
+      <circle cx="490" cy="375" r="18" fill="${CHARCOAL}" stroke="${ACCENT}" stroke-width="4"/>
+      <circle cx="830" cy="375" r="18" fill="${CHARCOAL}" stroke="${ACCENT}" stroke-width="4"/>
+      <path d="M830 590 C950 610 1050 590 1120 545" fill="none" stroke="${ACCENT}" stroke-opacity=".24" stroke-width="2"/>`,
     texts,
     darkSignature: true
   };
@@ -413,9 +413,9 @@ function relationshipMap(headline: string, items: VisualEvidenceItem[]): Scene {
     decorations: `
       <path d="M380 490 C430 430 470 420 520 440 M730 455 C760 470 790 490 820 510" fill="none" stroke="${BLUE}" stroke-opacity=".62" stroke-width="3"/>
       <rect x="96" y="385" width="300" height="190" rx="14" fill="${WHITE}" stroke="${CHARCOAL}" stroke-opacity=".12"/>
-      <rect x="438" y="350" width="300" height="190" rx="14" fill="${PANEL}" stroke="${GOLD}" stroke-opacity=".5"/>
+      <rect x="438" y="350" width="300" height="190" rx="14" fill="${PANEL}" stroke="${ACCENT}" stroke-opacity=".5"/>
       <rect x="780" y="385" width="300" height="190" rx="14" fill="${WHITE}" stroke="${CHARCOAL}" stroke-opacity=".12"/>
-      <circle cx="418" cy="465" r="18" fill="${GOLD}"/><circle cx="760" cy="485" r="18" fill="${GOLD}"/>`,
+      <circle cx="418" cy="465" r="18" fill="${ACCENT}"/><circle cx="760" cy="485" r="18" fill="${ACCENT}"/>`,
     texts,
     darkSignature: false
   };
@@ -425,9 +425,9 @@ function productProof(headline: string, supporting: string, hasAsset: boolean): 
   return {
     background: darkField("80%", "18%"),
     decorations: `
-      <rect x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" rx="18" fill="${PANEL}" stroke="${GOLD}" stroke-opacity=".46"/>
+      <rect x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" rx="18" fill="${PANEL}" stroke="${ACCENT}" stroke-opacity=".46"/>
       ${hasAsset ? "" : `<path d="M640 500 L760 355 L865 430 L980 280 L1050 385" fill="none" stroke="${BLUE}" stroke-opacity=".45" stroke-width="4"/>`}
-      <rect x="${GUTTER}" y="575" width="250" height="6" fill="${GOLD}"/>`,
+      <rect x="${GUTTER}" y="575" width="250" height="6" fill="${ACCENT}"/>`,
     texts: [
       label("PRODUCT NOTE", GUTTER, 160, 410, MUTED_DARK),
       display(headline, GUTTER, 205, 410, 54, 3, WHITE),
@@ -1012,11 +1012,11 @@ function label(
   return { text, x, top, width, size: 24, lineHeight: 30, maxLines: 1, align, style: "sans", weight: 600, color, uppercase: true, tracking: 2, role: "label" };
 }
 
-function darkField(goldX: string, blueY: string): string {
+function darkField(accentX: string, blueY: string): string {
   return `<defs>
-    <radialGradient id="goldField" cx="${goldX}" cy="34%" r="52%"><stop offset="0" stop-color="${GOLD}" stop-opacity=".08"/><stop offset=".6" stop-color="${DEEP_NAVY}" stop-opacity=".03"/><stop offset="1" stop-color="${DEEP_NAVY}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="accentField" cx="${accentX}" cy="34%" r="52%"><stop offset="0" stop-color="${ACCENT}" stop-opacity=".08"/><stop offset=".6" stop-color="${DEEP_NAVY}" stop-opacity=".03"/><stop offset="1" stop-color="${DEEP_NAVY}" stop-opacity="0"/></radialGradient>
     <radialGradient id="blueField" cx="78%" cy="${blueY}" r="62%"><stop offset="0" stop-color="${BLUE}" stop-opacity=".32"/><stop offset=".58" stop-color="${DEEP_NAVY}" stop-opacity=".16"/><stop offset="1" stop-color="${CHARCOAL}" stop-opacity="0"/></radialGradient>
-  </defs><rect width="${WIDTH}" height="${HEIGHT}" fill="${DEEP_NAVY}"/><rect width="${WIDTH}" height="${HEIGHT}" fill="url(#goldField)"/><rect width="${WIDTH}" height="${HEIGHT}" fill="url(#blueField)"/><g fill="none" stroke="${BLUE}" stroke-linecap="round"><path d="M-90 550 C190 470 445 620 750 545 S1080 490 1290 530" stroke-opacity=".2" stroke-width="3"/><path d="M-80 595 C190 525 470 655 770 590 S1080 545 1280 575" stroke-opacity=".11" stroke-width="2"/><path d="M-60 635 C220 575 490 680 790 630 S1090 590 1270 615" stroke-opacity=".07" stroke-width="2"/></g>`;
+  </defs><rect width="${WIDTH}" height="${HEIGHT}" fill="${DEEP_NAVY}"/><rect width="${WIDTH}" height="${HEIGHT}" fill="url(#accentField)"/><rect width="${WIDTH}" height="${HEIGHT}" fill="url(#blueField)"/><g fill="none" stroke="${BLUE}" stroke-linecap="round"><path d="M-90 550 C190 470 445 620 750 545 S1080 490 1290 530" stroke-opacity=".2" stroke-width="3"/><path d="M-80 595 C190 525 470 655 770 590 S1080 545 1280 575" stroke-opacity=".11" stroke-width="2"/><path d="M-60 635 C220 575 490 680 790 630 S1090 590 1270 615" stroke-opacity=".07" stroke-width="2"/></g>`;
 }
 
 function nodePattern(x: number, y: number, width: number, height: number, color = BLUE): string {
@@ -1029,8 +1029,8 @@ function padItems(items: VisualEvidenceItem[], fallback: string): VisualEvidence
   return Array.from({ length: 3 }, (_, index) => items[index] ?? { text: `${fallback} ${index + 1}`, source_excerpt: fallback });
 }
 
-async function embeddedLogo(kind: "gold" | "white" | "charcoal"): Promise<string> {
-  const filePath = path.join(ROOT, "brand-kit", "assets", `arvya-spiral-logo-${kind}.svg`);
+async function embeddedLogo(kind: "blue" | "white" | "charcoal"): Promise<string> {
+  const filePath = path.join(ROOT, "brand-kit", "assets", `splay-logo-${kind}.svg`);
   const bytes = await readFile(filePath);
   return `data:image/svg+xml;base64,${bytes.toString("base64")}`;
 }

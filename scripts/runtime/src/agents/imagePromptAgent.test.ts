@@ -7,7 +7,7 @@ import type { GeneratedPost } from "../types/index.ts";
 import { attachImages } from "./imagePromptAgent.ts";
 
 test("keeps curated SVG and Canva layouts on the same template metadata and bundled fonts", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-image-layout-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-image-layout-"));
   const previousImageMode = process.env.SOCIAL_AGENT_IMAGE_MODE;
   const previousMockMode = process.env.SOCIAL_AGENT_USE_MOCK_LLM;
   const previousApiKey = process.env.OPENAI_API_KEY;
@@ -50,7 +50,7 @@ test("keeps curated SVG and Canva layouts on the same template metadata and bund
     assert.match(post.image_prompt, /layered flowing wave/i);
     assert.match(post.image_prompt, /1200x675/);
     assert.match(post.image_prompt, /Do not render words, letters, logos, brand marks/i);
-    assert.match(post.image_prompt, /never create a gray or gray-gold dominant field/i);
+    assert.match(post.image_prompt, /never create a gray or washed-out neutral dominant field/i);
     assert.ok(canvaRequests[0].render_contract.text_layers.every((layer) => layer.fits));
     assert.notEqual(visual.brief.headline, post.topic);
     assert.ok(wordCount(visual.brief.headline) <= 7, visual.brief.headline);
@@ -67,9 +67,9 @@ test("keeps curated SVG and Canva layouts on the same template metadata and bund
     assert.notEqual(canvaRequests[0].text_layers.headline, post.topic);
     assert.match(svg, /@font-face\{font-family:"Brawler"/);
     assert.match(svg, /@font-face\{font-family:"Instrument Sans"/);
-    assert.match(svg, /Arvya/);
-    assert.doesNotMatch(svg, /Arvya\.io/);
-    assert.doesNotMatch(svg, />ARVYA</);
+    assert.match(svg, /Splay/);
+    assert.doesNotMatch(svg, /Splay\.io/);
+    assert.doesNotMatch(svg, />SPLAY</);
     assert.match(svg, new RegExp(`&quot;template&quot;:&quot;${visual.template_family}&quot;`));
 
     assert.match(canvaHtml, new RegExp(`data-template-family="${visual.template_family}"`));
@@ -86,7 +86,7 @@ test("keeps curated SVG and Canva layouts on the same template metadata and bund
 });
 
 test("creative mode generates separate visuals for each platform post", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-creative-images-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-creative-images-"));
   const previousImageMode = process.env.SOCIAL_AGENT_IMAGE_MODE;
   const previousCreativeMode = process.env.SOCIAL_AGENT_CREATIVE_MODE;
   const previousUniqueImages = process.env.SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST;
@@ -121,7 +121,7 @@ test("creative mode generates separate visuals for each platform post", async ()
 });
 
 test("fails closed instead of substituting a deterministic live background", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-live-background-failure-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-live-background-failure-"));
   const previousImageMode = process.env.SOCIAL_AGENT_IMAGE_MODE;
   const previousMockMode = process.env.SOCIAL_AGENT_USE_MOCK_LLM;
   const previousApiKey = process.env.OPENAI_API_KEY;

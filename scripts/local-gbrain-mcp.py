@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Credential-free, read-only MCP access to a local arvya-gbrain checkout."""
+"""Credential-free, read-only MCP access to a local splay-gbrain checkout."""
 
 from __future__ import annotations
 
@@ -164,7 +164,7 @@ def query_pages(query: str, limit: int) -> list[dict[str, Any]]:
 TOOLS = [
     {
         "name": "get_recent_salience",
-        "description": "Return recent credential-free pages from the locally synced Arvya GBrain checkout.",
+        "description": "Return recent credential-free pages from the locally synced Splay GBrain checkout.",
         "inputSchema": {"type": "object", "properties": {"limit": {"type": "integer", "minimum": 1, "maximum": 30}}},
     },
     {
@@ -219,7 +219,7 @@ def handle(req: dict[str, Any]) -> dict[str, Any] | None:
             "result": {
                 "protocolVersion": "2025-03-26",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "arvya-local-gbrain", "version": "1.0.0"},
+                "serverInfo": {"name": "splay-local-gbrain", "version": "1.0.0"},
             },
         }
     if method == "tools/list":

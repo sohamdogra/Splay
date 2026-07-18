@@ -1,6 +1,6 @@
 # Splay
 
-Frontend-ready application backend for generating, reviewing, visually validating, scheduling, publishing, and learning from Arvya LinkedIn/X posts.
+Frontend-ready application backend for generating, reviewing, visually validating, scheduling, publishing, and learning from Splay LinkedIn/X posts.
 
 This repository no longer depends on being installed or invoked as a Codex skill. The editorial and publishing runtime is preserved as the domain core, while `apps/api` exposes a stable HTTP/JSON contract for a future frontend. No frontend is included yet.
 
@@ -177,7 +177,7 @@ convex/                Convex schema and protected media upload mutations
 scripts/runtime/       Existing editorial, visual, publishing, and analytics core
 scripts/local-gbrain-* Credential-free local GBrain access
 references/            Editorial and operational specifications
-assets/brand-kit/      Official Arvya source assets
+assets/brand-kit/      Official Splay source assets
 prisma (nested core)   Database schema and migrations
 output/                Local post packs, previews, images, QA, and logs (ignored)
 ```
@@ -185,7 +185,7 @@ output/                Local post packs, previews, images, QA, and logs (ignored
 ## Guardrails retained from the original workflow
 
 - Use public-safe, traceable GBrain evidence; reject internal-only evidence.
-- Use `Arvya`, never `Arvya.io`, in public copy.
+- Use `Splay`, never `Splay.io`, in public copy.
 - LinkedIn drafts require 3–4 relevant hashtags; X should normally use zero or one.
 - Do not approve compliance failures or editorial rejects.
 - Generate background artwork only; stamp exact copy and the official logo deterministically.

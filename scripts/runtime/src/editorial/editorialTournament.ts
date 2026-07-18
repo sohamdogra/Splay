@@ -59,7 +59,7 @@ export function buildAngleBriefs(idea: TopicIdea): AngleBrief[] {
       thesis: context?.public_safe_claim ?? idea.topic,
       reader_takeaway: "Understand one concrete behavior and the review point before anything changes.",
       product_role: "central",
-      hook_direction: `Open with the source artifact or workflow event; introduce Arvya only after the consequence is clear.`
+      hook_direction: `Open with the source artifact or workflow event; introduce Splay only after the consequence is clear.`
     }
   ];
 }

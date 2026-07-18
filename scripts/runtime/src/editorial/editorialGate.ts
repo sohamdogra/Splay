@@ -1,7 +1,7 @@
 import type { Platform } from "../types/index.ts";
 import { EDITORIAL_SPEC } from "./editorialSpec.ts";
 
-// Internal Arvya positioning language that reads as jargon to a social audience.
+// Internal Splay positioning language that reads as jargon to a social audience.
 // Shared by the import gate (chat-authored drafts) and the runtime fallback agents.
 export const INTERNAL_JARGON_PHRASES = EDITORIAL_SPEC.public_copy.banned_phrases;
 
@@ -48,8 +48,8 @@ export function checkPostDraft(input: PostDraftInput): EditorialCheck {
   for (const phrase of findInternalJargon(input.postText)) {
     errors.push(`Internal jargon in post text: "${phrase}". Rewrite it in plain language, or keep it only with an immediate one-line explanation and re-import with --skip-editorial-gate.`);
   }
-  if (/arvya\.io/i.test(`${input.topic} ${input.postText}`)) {
-    errors.push('Post uses "Arvya.io". The brand name in social copy is "Arvya".');
+  if (/splay\.io/i.test(`${input.topic} ${input.postText}`)) {
+    errors.push('Post uses "Splay.io". The brand name in social copy is "Splay".');
   }
 
   if (input.platform === "linkedin") {
@@ -65,7 +65,7 @@ export function checkPostDraft(input: PostDraftInput): EditorialCheck {
 
     const count = Array.from(input.postText.trim()).length;
     if (count < LINKEDIN_WARN_MIN) {
-      warnings.push(`LinkedIn draft is ${count} chars; the target is ${LINKEDIN_TARGET_MIN}-${LINKEDIN_TARGET_MAX}. Confirm the post still lands one clear pain and one concrete Arvya angle.`);
+      warnings.push(`LinkedIn draft is ${count} chars; the target is ${LINKEDIN_TARGET_MIN}-${LINKEDIN_TARGET_MAX}. Confirm the post still lands one clear pain and one concrete Splay angle.`);
     } else if (count > LINKEDIN_WARN_MAX) {
       warnings.push(`LinkedIn draft is ${count} chars; the target is ${LINKEDIN_TARGET_MIN}-${LINKEDIN_TARGET_MAX}. Keep the extra length only if the topic truly needs it.`);
     }
@@ -110,8 +110,8 @@ export function checkImageCopy(input: ImageCopyInput): EditorialCheck {
     }
   }
 
-  if (/arvya\.io/i.test(`${headline} ${support}`)) {
-    errors.push('Image copy uses "Arvya.io". The brand name on creative is "Arvya".');
+  if (/splay\.io/i.test(`${headline} ${support}`)) {
+    errors.push('Image copy uses "Splay.io". The brand name on creative is "Splay".');
   }
 
   return { errors, warnings: [] };
@@ -166,9 +166,9 @@ function knownHashtagPattern(tag: string): RegExp | null {
     capitalmarkets: /\b(bank|banker|capital markets|financing|transaction|deal)\b/i,
     dealops: /\b(deal|workflow|tracker|inbox|follow-up|handoff|owner|brief|call)\b/i,
     dealworkflow: /\b(deal|workflow|tracker|brief|call|meeting|calendar|handoff|agenda)\b/i,
-    dealtechnology: /\b(deal|workflow|technology|tool|software|system|tracker|arvya)\b/i,
+    dealtechnology: /\b(deal|workflow|technology|tool|software|system|tracker|splay)\b/i,
     mergersandacquisitions: /\b(m&a|merger|acquisition|buyer|seller|deal|transaction)\b/i,
-    artificialintelligence: /\b(ai|artificial intelligence|agent|automation|arvya)\b/i,
+    artificialintelligence: /\b(ai|artificial intelligence|agent|automation|splay)\b/i,
     salesenablement: /\b(sales|call|meeting|brief|prep|agenda|pipeline)\b/i
   };
   return patterns[tag] ?? null;

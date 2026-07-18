@@ -64,7 +64,7 @@ test("locks the standard compositor to exact gated image copy", () => {
 });
 
 test("measures generated background noise before typography and preserves provider artwork", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-generated-background-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-generated-background-"));
   await Promise.all(["images", "canva-imports"].map((dir) => mkdir(path.join(outputDir, dir), { recursive: true })));
   const backgroundPath = path.join(outputDir, "quiet-generated-background.svg");
   await writeFile(backgroundPath, campaignBackgroundSvg(), "utf8");
@@ -97,7 +97,7 @@ test("measures generated background noise before typography and preserves provid
 });
 
 test("rejects gray and visually empty generated backgrounds", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-empty-background-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-empty-background-"));
   await Promise.all(["images", "canva-imports"].map((dir) => mkdir(path.join(outputDir, dir), { recursive: true })));
   const backgroundPath = path.join(outputDir, "gray-empty-background.svg");
   await writeFile(backgroundPath, `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675"><rect width="1200" height="675" fill="#777777"/></svg>`, "utf8");
@@ -121,8 +121,8 @@ test("rejects gray and visually empty generated backgrounds", async () => {
 });
 
 test("renders matching SVG and Canva metadata for every curated family", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-template-render-"));
-  const officialGoldLogo = (await readFile(path.resolve("brand-kit/assets/arvya-spiral-logo-gold.svg"))).toString("base64");
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-template-render-"));
+  const officialBlueLogo = (await readFile(path.resolve("brand-kit/assets/splay-logo-blue.svg"))).toString("base64");
   await Promise.all(["images", "canva-imports"].map(async (dir) => {
     const { mkdir } = await import("node:fs/promises");
     await mkdir(path.join(outputDir, dir), { recursive: true });
@@ -144,10 +144,10 @@ test("renders matching SVG and Canva metadata for every curated family", async (
       assert.ok(result.renderContract.text_layers.every((layer) => layer.fits), `${family}: fitted text`);
       assert.match(svg, new RegExp(`&quot;template&quot;:&quot;${family}&quot;`));
       assert.match(html, new RegExp(`data-template-family="${family}"`));
-      assert.match(svg, /Arvya/);
-      assert.match(html, /Arvya/);
-      assert.doesNotMatch(svg, /Arvya\.io/);
-      assert.doesNotMatch(html, /Arvya\.io/);
+      assert.match(svg, /Splay/);
+      assert.match(html, /Splay/);
+      assert.doesNotMatch(svg, /Splay\.io/);
+      assert.doesNotMatch(html, /Splay\.io/);
       assert.doesNotMatch(svg, /VISIBLE ARTIFACT|OPERATING REALITY|EVIDENCE NOTE|SOURCE TO ACTION|SOURCE 0|STEP 0|SOURCE CONTEXT|SOURCE-BACKED|THINGS TO KEEP|ADOPTION COST|CODIFY EXISTING WORK/i);
       assert.doesNotMatch(svg, /\u2026|[.]{3}/);
       assert.ok(result.renderContract.signature.logo_size >= 64);
@@ -159,7 +159,7 @@ test("renders matching SVG and Canva metadata for every curated family", async (
         assert.ok(headline && support);
         assert.equal(headline.font_family, "Instrument Sans");
         assert.equal(headline.font_weight, 600);
-        assert.ok(svg.includes(officialGoldLogo), "dark thesis must embed the bundled official gold logo bytes");
+        assert.ok(svg.includes(officialBlueLogo), "dark thesis must embed the bundled official blue logo bytes");
         const gap = support.y - (headline.y + headline.height);
         assert.ok(gap >= 28 && gap <= 100, `headline/support gap=${gap}`);
         assert.equal(result.qa.checks.find((check) => check.name === "brand_signature_scale")?.ok, true);
@@ -175,7 +175,7 @@ test("renders matching SVG and Canva metadata for every curated family", async (
 });
 
 test("fits the source-evidence-card headline without truncation", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-source-card-render-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-source-card-render-"));
   await Promise.all(["images", "canva-imports"].map(async (dir) => {
     const { mkdir } = await import("node:fs/promises");
     await mkdir(path.join(outputDir, dir), { recursive: true });

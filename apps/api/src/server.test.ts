@@ -104,7 +104,7 @@ function fixturePack(): Record<string, unknown> {
   return {
     generated_at: "2026-07-18T12:00:00.000Z",
     brand: {
-      name: "Arvya",
+      name: "Splay",
       audience: "deal teams",
       tone: "direct",
       positioning: "Reviewable next steps.",
@@ -126,7 +126,7 @@ function fixturePack(): Record<string, unknown> {
       image_url: path.join(outputDir, "images", "post-1.png"),
       image_provider: "placeholder",
       canva_design_url: null,
-      alt_text: "Arvya buyer tracker graphic.",
+      alt_text: "Splay buyer tracker graphic.",
       hashtags: ["DealOps", "PrivateEquity", "InvestmentBanking"],
       status: "draft",
       created_at: "2026-07-18T12:00:00.000Z",

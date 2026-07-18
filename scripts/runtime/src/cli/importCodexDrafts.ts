@@ -91,7 +91,7 @@ console.log(`Preview: ${previewPath}`);
 
 function buildPost(input: CodexDraftPost, createdAt: string, index: number): { post: GeneratedPost; editorialErrors: string[] } {
   const platform = normalizePlatform(input.platform);
-  const topic = clean(input.topic) || "Arvya social post";
+  const topic = clean(input.topic) || "Splay social post";
   const sourceContext = normalizeSourceContext(input.source_context, topic);
   const normalizedEditorial = normalizeEditorialContext(input.editorial_context, { topic, sourceContext });
   const postIntent = normalizePostIntent(input.post_intent, topic, index);

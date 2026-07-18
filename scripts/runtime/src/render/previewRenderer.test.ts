@@ -7,7 +7,7 @@ import type { GeneratedPost, PostPack } from "../types/index.ts";
 import { renderPreview } from "./previewRenderer.ts";
 
 test("uses one responsive gutter for header, content, and cards", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-preview-layout-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-preview-layout-"));
 
   try {
     const previewPath = await renderPreview(makePack(), outputDir);
@@ -26,7 +26,7 @@ test("uses one responsive gutter for header, content, and cards", async () => {
 });
 
 test("renders application review preview without embedded server actions", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-preview-chat-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-preview-chat-"));
 
   try {
     const previewPath = await renderPreview({ ...makePack(), posts: [makePost()] }, outputDir);
@@ -48,7 +48,7 @@ function makePack(): PostPack {
   return {
     generated_at: "2026-06-30T00:00:00.000Z",
     brand: {
-      name: "Arvya",
+      name: "Splay",
       audience: "Deal teams",
       tone: "Direct",
       positioning: "Source-backed workflows",
@@ -70,12 +70,12 @@ function makePost(): GeneratedPost {
     },
     platform: "linkedin",
     topic: "Stop chasing buyer updates",
-    post_text: "The CRM says one thing. The inbox says another. Arvya keeps the buyer update tied to the work.",
-    image_prompt: "Arvya social image prompt",
+    post_text: "The CRM says one thing. The inbox says another. Splay keeps the buyer update tied to the work.",
+    image_prompt: "Splay social image prompt",
     image_url: "images/draft-1.png",
     image_provider: "codex-imagegen",
     canva_design_url: null,
-    alt_text: "Arvya social post image.",
+    alt_text: "Splay social post image.",
     hashtags: ["PrivateEquity"],
     status: "draft",
     created_at: "2026-06-30T00:00:00.000Z",

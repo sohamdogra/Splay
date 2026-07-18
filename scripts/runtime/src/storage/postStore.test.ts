@@ -6,7 +6,7 @@ import test from "node:test";
 import { loadPostPack, recordReviewDecision, savePostPack } from "./postStore.ts";
 
 test("records structured approve, revise, and reject feedback with a text snapshot", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-review-history-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-review-history-"));
   const previousOutput = process.env.SOCIAL_AGENT_OUTPUT_DIR;
   const previousDatabase = process.env.DATABASE_URL;
   process.env.SOCIAL_AGENT_OUTPUT_DIR = outputDir;
@@ -15,7 +15,7 @@ test("records structured approve, revise, and reject feedback with a text snapsh
   try {
     await savePostPack({
       generated_at: "2026-07-10T00:00:00.000Z",
-      brand: { name: "Arvya", audience: "deal teams", tone: "direct", positioning: "", avoid: [] },
+      brand: { name: "Splay", audience: "deal teams", tone: "direct", positioning: "", avoid: [] },
       discovered_themes: [],
       publish_logs: [],
       posts: [{

@@ -7,7 +7,7 @@ import type { BrandProfile, TopicIdea } from "../types/index.ts";
 import { generatePostsForIdea } from "./postGenerationAgent.ts";
 
 test("local post generation avoids internal strategy jargon", async () => {
-  const outputDir = await mkdtemp(path.join(os.tmpdir(), "arvya-post-generation-"));
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-post-generation-"));
   const previousOutputDir = process.env.SOCIAL_AGENT_OUTPUT_DIR;
   const previousTestMode = process.env.SOCIAL_AGENT_TEST_MODE;
   const previousMockMode = process.env.SOCIAL_AGENT_USE_MOCK_LLM;
@@ -70,7 +70,7 @@ function makeWorkflowToolIdea(): TopicIdea {
     angle: "Answer the objection that teams do not need another place to work.",
     score: 9,
     source_context: {
-      summary: "Prospects worry that new systems create another destination. The strongest response has been to frame Arvya as a way to codify existing work into a lightweight operating system, not replace every tool.",
+      summary: "Prospects worry that new systems create another destination. The strongest response has been to frame Splay as a way to codify existing work into a lightweight operating system, not replace every tool.",
       gbrain_references: ["sales_notes/2026-06-18-objections"],
       why_now: "Recent sales notes show this theme is active."
     }
@@ -79,10 +79,10 @@ function makeWorkflowToolIdea(): TopicIdea {
 
 function makeBrand(): BrandProfile {
   return {
-    name: "Arvya",
+    name: "Splay",
     audience: "private equity, investment banking, deal teams, founders, operators",
     tone: "sharp, credible, founder-led, direct, thoughtful",
-    positioning: "Arvya turns undocumented deal workflows into repeatable operating systems.",
+    positioning: "Splay turns undocumented deal workflows into repeatable operating systems.",
     avoid: ["generic AI hype", "revolutionize", "game changer", "fake certainty", "too many emojis", "overexplaining"]
   };
 }

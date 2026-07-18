@@ -1,34 +1,26 @@
 :root {
-  --arvya-charcoal: #151a23;
-  --arvya-gold: #cf9742;
-  --arvya-white: #ffffff;
-  --arvya-mist: #f4f4f5;
+  --splay-blue: #0f5eff;
+  --splay-blue-dark: #0a3db8;
+  --splay-charcoal: #1f2937;
+  --splay-ink: #111827;
+  --splay-white: #ffffff;
+  --splay-mist: #f3f6fa;
 
-  --arvya-gray-100: #f9fafb;
-  --arvya-gray-200: #f4f4f5;
-  --arvya-gray-300: #e6e7ea;
-  --arvya-gray-400: #d3d6d9;
-  --arvya-gray-500: #a5a5a6;
-  --arvya-gray-600: #71747a;
-  --arvya-gray-700: #4f565f;
-  --arvya-gray-800: #3a424e;
-  --arvya-gray-900: #252a31;
-  --arvya-gray-990: #151a23;
+  --splay-gray-100: #f9fafb;
+  --splay-gray-200: #f3f4f6;
+  --splay-gray-300: #e5e7eb;
+  --splay-gray-400: #d1d5db;
+  --splay-gray-500: #9ca3af;
+  --splay-gray-600: #6b7280;
+  --splay-gray-700: #4b5563;
+  --splay-gray-800: #374151;
+  --splay-gray-900: #1f2937;
+  --splay-gray-990: #111827;
 
-  --arvya-gold-20: #fff1db;
-  --arvya-gold-30: #ffd699;
-  --arvya-gold-40: #f9c16c;
-  --arvya-gold-50: #e1a954;
-  --arvya-gold-60: #cf9742;
-  --arvya-gold-80: #a36b16;
-  --arvya-gold-90: #8a5300;
+  --splay-success: #16a34a;
+  --splay-error: #dc2626;
+  --splay-warning: #d97706;
 
-  --arvya-success: #34d399;
-  --arvya-error: #e3022c;
-  --arvya-error-light: #ff4e6f;
-  --arvya-error-dark: #9f001d;
-  --arvya-error-deep: #5b0011;
-
-  --arvya-font-display: "Brawler", Georgia, "Times New Roman", serif;
-  --arvya-font-sans: "Instrument Sans", Inter, Arial, sans-serif;
+  --splay-font-display: "Brawler", Georgia, "Times New Roman", serif;
+  --splay-font-sans: "Instrument Sans", Inter, Arial, sans-serif;
 }

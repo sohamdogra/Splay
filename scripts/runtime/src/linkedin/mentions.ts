@@ -21,16 +21,6 @@ export type LinkedInPublishContent = {
   mentionedEntities: string[];
 };
 
-export const ARVYA_LINKEDIN_ENTITY: LinkedInMentionEntity = {
-  aliases: ["Arvya, Inc.", "Arvya"],
-  id: "114174190",
-  link: "https://www.linkedin.com/company/arvya-inc",
-  entity: "urn:li:organization:114174190",
-  vanityName: "arvya-inc",
-  localizedName: "Arvya, Inc.",
-  kind: "organization"
-};
-
 export async function prepareLinkedInPublishContent(post: GeneratedPost): Promise<LinkedInPublishContent> {
   const formatted = formatPostText(post.post_text, post.hashtags);
   if (post.platform !== "linkedin") return { text: formatted, annotations: [], mentionedEntities: [] };
@@ -82,11 +72,33 @@ export async function loadLinkedInMentionRegistry(postEntities: LinkedInMentionE
   const registryPath = configuredPath || path.join(getOutputDir(), "linkedin-mentions.json");
   const fileEntities = await readRegistryFile(registryPath, Boolean(configuredPath));
   const merged = new Map<string, LinkedInMentionEntity>();
-  for (const entity of [ARVYA_LINKEDIN_ENTITY, ...fileEntities, ...postEntities]) {
+  for (const entity of [...configuredBrandLinkedInEntities(), ...fileEntities, ...postEntities]) {
     const normalized = normalizeLinkedInMentionEntity(entity);
     merged.set(normalized.entity, normalized);
   }
   return [...merged.values()];
+}
+
+function configuredBrandLinkedInEntities(): LinkedInMentionEntity[] {
+  const id = process.env.LINKEDIN_BRAND_ORGANIZATION_ID?.trim();
+  const vanityName = process.env.LINKEDIN_BRAND_VANITY_NAME?.trim();
+  if (!id && !vanityName) return [];
+  if (!id || !vanityName) {
+    throw new Error("LINKEDIN_BRAND_ORGANIZATION_ID and LINKEDIN_BRAND_VANITY_NAME must be configured together.");
+  }
+
+  const brandName = process.env.BRAND_NAME?.trim() || "Splay";
+  const localizedName = process.env.LINKEDIN_BRAND_LOCALIZED_NAME?.trim() || brandName;
+  const link = process.env.LINKEDIN_BRAND_URL?.trim() || `https://www.linkedin.com/company/${vanityName}`;
+  return [{
+    aliases: [...new Set([localizedName, brandName])],
+    id,
+    link,
+    entity: `urn:li:organization:${id}`,
+    vanityName,
+    localizedName,
+    kind: "organization"
+  }];
 }
 
 type MentionMatch = {

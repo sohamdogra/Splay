@@ -16,23 +16,23 @@ import {
   type VisualHistoryEntry
 } from "./visualTemplateSelector.ts";
 
-const ARVYA_VISUAL_STYLE = [
-  "Use the ARVYA references as a mood and quality bar, not as templates to copy.",
-  "Vary composition across posts while preserving one recognizable campaign system: dark navy-blue depth, layered flowing wave forms, white typography, and restrained gold detail.",
-  "Use a deep navy-blue and Charcoal #151A23 field across 75-85% of the canvas. Use company blue #4EA3D3 for layered wave contours and cool depth. Keep White #FFFFFF and Mist #F4F4F5 for type, and limit Arvya Gold #CF9742 to 3-5% as one small accent.",
-  "Never use a light gray, beige, washed-out charcoal, or gray-gold field as the dominant background. The dark blue base must be unmistakable, with luminous blue and restrained gold wave energy rather than flat gray panels.",
+const SPLAY_VISUAL_STYLE = [
+  "Use the SPLAY references as a mood and quality bar, not as templates to copy.",
+  "Vary composition across posts while preserving one recognizable campaign system: dark navy-blue depth, layered flowing wave forms, white typography, and one restrained cobalt accent.",
+  "Use a deep navy-blue and Charcoal #1F2937 field across 75-85% of the canvas. Use company blue #60A5FA for layered wave contours and cool depth. Keep White #FFFFFF and Mist #F3F6FA for type, and limit Splay Blue #0F5EFF to 3-5% as one small accent.",
+  "Never use a light gray, beige, washed-out charcoal, or washed-out neutral field as the dominant background. The dark blue base must be unmistakable, with luminous blue and crisp cobalt wave energy rather than flat gray panels.",
   "Avoid blue-purple AI gradients, neon cyan/teal glow fields, neon brains, robots, holograms, fake dashboards, generic charts, and decorative tech clutter.",
   "Use bold Instrument Sans/Inter-style sans typography for the main headline and supporting copy. Do not use a large serif headline in the standard campaign layout.",
   "Favor clean editorial cues, document fragments, fine node-line patterns derived from the logo, Outlook-native workflow hints, and quiet architectural geometry.",
-  "Borrow the Arvya design-system discipline: thin hairline rules, compact modular spacing, crisp rectangular UI silhouettes, small gold actions, and dark inset panels. Keep these cues subtle and secondary to the social headline.",
-  "Keep the composition calm but visually active: one useful message, controlled negative space, a compact headline/support cluster, luminous layered blue waves across the bottom quarter, and one restrained gold highlight.",
+  "Borrow the Splay design-system discipline: thin hairline rules, compact modular spacing, crisp rectangular UI silhouettes, small blue actions, and dark inset panels. Keep these cues subtle and secondary to the social headline.",
+  "Keep the composition calm but visually active: one useful message, controlled negative space, a compact headline/support cluster, luminous layered blue waves across the bottom quarter, and one restrained cobalt highlight.",
   `Use a ${FINAL_IMAGE_WIDTH}x${FINAL_IMAGE_HEIGHT} (16:9) widescreen social-card canvas; do not generate a portrait or square composition.`,
   "Keep image text compact, concrete, and scannable: one headline of 3-8 words, one support line of 5-12 words, and no extra text callouts beyond the curated template layers.",
   `Avoid public-facing jargon and internal positioning language such as ${INTERNAL_JARGON_PHRASES.join(", ")}.`,
   "Use a 96px horizontal safe-area gutter and a 54px vertical safe-area gutter. Keep the support line 28-100px below the fitted headline block so the short canvas remains compact and readable.",
-  "Use the bundled official Arvya spiral SVG at no less than 64px on a 1200px-wide canvas, with a 30px-or-larger Arvya wordmark. Never redraw, approximate, or ask an image model to generate the logo.",
+  "Use the bundled official Splay fan SVG at no less than 64px on a 1200px-wide canvas, with a 30px-or-larger Splay wordmark. Never redraw, approximate, or ask an image model to generate the logo.",
   "Keep the final message text and small body copy as editable Canva text layers whenever possible.",
-  "Use the official Arvya spiral mark with Arvya as the consistent brand signature. Do not use Arvya.io in social creative."
+  "Use the official Splay fan mark with Splay as the consistent brand signature. Do not use Splay.io in social creative."
 ];
 
 type ImageMode = "canva" | "gpt-canva" | "placeholder";
@@ -183,31 +183,31 @@ async function existingApprovedVisualAsset(value: string | null | undefined): Pr
 
 function buildImagePrompt(post: GeneratedPost, visual: VisualMetadata): string {
   return [
-    "Create an Arvya startup social image brief.",
+    "Create a Splay startup social image brief.",
     `Topic: ${post.topic}.`,
     `Approved template: ${visual.template_family}; density: ${visual.density}; palette: ${visual.palette}; motif: ${visual.motif}.`,
     ...creativeVisualInstructions(post, visual),
-    ...ARVYA_VISUAL_STYLE,
+    ...SPLAY_VISUAL_STYLE,
     "The references guide design philosophy only. Vary the layout and wave geometry, but keep the same dark-blue color balance and recurring flowing-wave signature."
   ].join(" ");
 }
 
 function buildGptBackgroundPrompt(post: GeneratedPost, referenceAssetPaths: string[], visual: VisualMetadata): string {
   return [
-    "Generate a premium abstract background plate for an Arvya social post.",
+    "Generate a premium abstract background plate for a Splay social post.",
     "This is background artwork only. Do not render words, letters, logos, brand marks, symbols, captions, UI text, numbers, or a visible headline.",
-    "The final headline and official mark plus Arvya signature will be added later by the curated layout.",
+    "The final headline and official mark plus Splay signature will be added later by the curated layout.",
     `Compose the background for a final ${FINAL_IMAGE_WIDTH}x${FINAL_IMAGE_HEIGHT} (16:9) crop; do not build a portrait or square composition.`,
     `Topic guiding the mood: ${post.topic}.`,
     `Visual direction: ${visual.motif} using the ${visual.palette} palette for the ${visual.template_family} curated layout.`,
     ...creativeVisualInstructions(post, visual),
     "Design philosophy: serious enterprise intelligence, deal workflow memory, founder-led judgment, modern private-market operating systems.",
     "Use depth, atmosphere, focus, high contrast, and quiet restraint. Keep clean negative space where text can sit.",
-    "Use a near-black dark navy-blue plus Charcoal #151A23 base, luminous layered flowing waves in company blue #4EA3D3, and only a small 3-5% Arvya Gold #CF9742 accent. Keep the bottom quarter visually active and never create a gray or gray-gold dominant field.",
-    "Do not copy the local ARVYA references exactly; use them only as a quality bar for palette discipline, editorial polish, source-citation motifs, and institutional restraint.",
+    "Use a near-black dark navy-blue plus Charcoal #1F2937 base, luminous layered flowing waves in company blue #60A5FA, and only a small 3-5% Splay Blue #0F5EFF accent. Keep the bottom quarter visually active and never create a gray or washed-out neutral dominant field.",
+    "Do not copy the local SPLAY references exactly; use them only as a quality bar for palette discipline, editorial polish, source-citation motifs, and institutional restraint.",
     referenceAssetPaths.length > 0
       ? `Local style references available to the downstream Canva step: ${referenceAssetPaths.join(", ")}.`
-      : "No local ARVYA reference exports were found.",
+      : "No local SPLAY reference exports were found.",
     "Avoid fake dashboards, robot imagery, icons, charts, literal paperwork, stock-photo hands, office scenes, beige templates, blue-purple AI gradients, neon cyan glow fields, and decorative clutter.",
     "Vary spatial rhythm from other posts while preserving the same dark-blue palette and recognizable wave language."
   ].join(" ");
@@ -224,7 +224,7 @@ function creativeVisualInstructions(post: GeneratedPost, visual: VisualMetadata)
 }
 
 function buildAltText(post: GeneratedPost, visual: VisualMetadata): string {
-  return `Arvya ${visual.density} ${visual.template_family.replace(/-/g, " ")} graphic about ${post.topic.toLowerCase()}.`;
+  return `Splay ${visual.density} ${visual.template_family.replace(/-/g, " ")} graphic about ${post.topic.toLowerCase()}.`;
 }
 
 async function createCuratedAssets(
@@ -363,10 +363,10 @@ function buildCanvaRequest(
       `Context summary for visual metaphor only: ${post.source_context.summary}`,
       referenceAssetPaths.length > 0
         ? `Use these local reference exports for visual style context when creating the Canva design: ${referenceAssetPaths.join(", ")}.`
-        : "No local ARVYA reference exports were found; follow the embedded Arvya visual style guide exactly.",
+        : "No local SPLAY reference exports were found; follow the embedded Splay visual style guide exactly.",
       imageAsset.backgroundImagePath
-        ? `Use the generated background plate at ${imageAsset.backgroundImagePath}; preserve the bundled official Arvya SVG, bold sans headline, divider, and body copy as separate Canva layers.`
-        : "Use the curated background and preserve its bundled official Arvya SVG, bold sans headline, divider, and body copy as separate Canva layers.",
+        ? `Use the generated background plate at ${imageAsset.backgroundImagePath}; preserve the bundled official Splay SVG, bold sans headline, divider, and body copy as separate Canva layers.`
+        : "Use the curated background and preserve its bundled official Splay SVG, bold sans headline, divider, and body copy as separate Canva layers.",
       imageAsset.canvaImportHtml
         ? `A local Canva import prototype is available at ${imageAsset.canvaImportHtml}.`
         : "No Canva import HTML was generated for this request.",
@@ -377,12 +377,12 @@ function buildCanvaRequest(
       `Use an exact ${FINAL_IMAGE_WIDTH}x${FINAL_IMAGE_HEIGHT} 16:9 widescreen feed layout. Never use a portrait or square canvas. Keep the headline/support cluster compact and the bottom-quarter waves visually active.`,
       "Do not flatten text into the background image. Text must remain editable in Canva."
     ].join(" "),
-    visual_style: ARVYA_VISUAL_STYLE,
+    visual_style: SPLAY_VISUAL_STYLE,
     reference_asset_paths: referenceAssetPaths,
     background_image_path: imageAsset.backgroundImagePath,
     canva_import_html: imageAsset.canvaImportHtml,
     text_layers: {
-      wordmark: "Arvya",
+      wordmark: "Splay",
       headline: toDisplayHeadline(visual.brief.headline),
       body
     },
@@ -417,7 +417,7 @@ function getCanvaNote(imageMode: ImageMode): string {
 }
 
 async function getReferenceAssetPaths(): Promise<string[]> {
-  const dir = process.env.ARVYA_REFERENCE_ASSET_DIR ?? path.join(os.homedir(), "Downloads", "ARVYA");
+  const dir = process.env.SPLAY_REFERENCE_ASSET_DIR ?? path.join(os.homedir(), "Downloads", "SPLAY");
   try {
     const entries = await readdir(dir, { withFileTypes: true });
     return entries

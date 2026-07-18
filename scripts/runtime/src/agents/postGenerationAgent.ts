@@ -196,8 +196,8 @@ function localTournamentDraft(
 }
 
 function inferCandidateAngle(text: string, fallback: DraftCandidate["angle"]): DraftCandidate["angle"] {
-  const productIndex = text.toLowerCase().indexOf("arvya");
-  const productMentions = text.match(/\bArvya\b/gi)?.length ?? 0;
+  const productIndex = text.toLowerCase().indexOf("splay");
+  const productMentions = text.match(/\bSplay\b/gi)?.length ?? 0;
   if (productIndex >= 0 && (productMentions > 1 || productIndex < text.length * 0.55)) return "product_proof";
   if (/\b(not|but|instead|unless|only when|only if|test|before asking|the point)\b/i.test(text)) return "boundary_condition";
   return fallback === "product_proof" ? "operator_observation" : fallback;
@@ -616,7 +616,7 @@ function linkedinTopicCandidates(idea: TopicIdea, brand: BrandProfile): string[]
         "",
         "The company notes were blunt: dashboards help visibility, but they do not create clear ownership or repeatable follow-through by themselves.",
         "",
-        "That is the line Arvya cares about: visibility should lead to action, not another place to look."
+        "That is the line Splay cares about: visibility should lead to action, not another place to look."
       ].join("\n"),
       [
         "The dashboard is usually where teams look after work has already drifted.",
@@ -648,7 +648,7 @@ function linkedinTopicCandidates(idea: TopicIdea, brand: BrandProfile): string[]
         "",
         "The model is not the hard part. The handoff rules, diligence follow-ups, and status rituals around it are.",
         "",
-        "That is the work Arvya wants to keep attached to the workflow."
+        "That is the work Splay wants to keep attached to the workflow."
       ].join("\n"),
       [
         "The quiet cost in deal work is not always the analysis.",
@@ -764,7 +764,7 @@ function linkedinTopicCandidates(idea: TopicIdea, brand: BrandProfile): string[]
         "",
         "As decisions, risks, and owner context attached to the work that now has to happen.",
         "",
-        "That is the handoff Arvya is building toward."
+        "That is the handoff Splay is building toward."
       ].join("\n")
     ];
   }

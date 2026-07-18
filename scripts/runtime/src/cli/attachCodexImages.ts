@@ -74,7 +74,7 @@ try {
       const candidateFile = candidatePath(candidate);
       if (!candidateFile) throw new Error(`Image map candidate ${index + 1} for ${post.id} does not include a path.`);
       const backgroundImagePath = path.isAbsolute(candidateFile) ? candidateFile : path.resolve(outputDir, candidateFile);
-      const stagingDir = await mkdtemp(path.join(os.tmpdir(), `arvya-codex-${safeFilePart(post.id)}-${index + 1}-`));
+      const stagingDir = await mkdtemp(path.join(os.tmpdir(), `splay-codex-${safeFilePart(post.id)}-${index + 1}-`));
       stagingDirs.push(stagingDir);
       await Promise.all(["images", "canva-imports"].map((dir) => mkdir(path.join(stagingDir, dir), { recursive: true })));
       const rendered = await renderCuratedVisual(post, visual, stagingDir, backgroundImagePath);
@@ -85,16 +85,16 @@ try {
     const altText = selection.candidate.alt_text ?? entry.alt_text;
     const updated: GeneratedPost = {
       ...post,
-      image_prompt: prompt ?? post.image_prompt ?? "Codex imagegen background with curated Arvya text overlay.",
+      image_prompt: prompt ?? post.image_prompt ?? "Codex imagegen background with curated Splay text overlay.",
       image_url: rendered.imageUrl,
       image_provider: "codex-imagegen",
-      alt_text: (altText ?? post.alt_text) || `Arvya social graphic about ${post.topic.toLowerCase()}.`,
+      alt_text: (altText ?? post.alt_text) || `Splay social graphic about ${post.topic.toLowerCase()}.`,
       image_notes: [
         ...(post.image_notes ?? []),
         ...selection.rejected.map((reason) => `Rejected generated background ${reason}.`),
         ...(selection.passingAlternatives ? [`Ranked ${selection.passingAlternatives + 1} QA-passing backgrounds by visual quality instead of accepting the first pass.`] : []),
         `Codex imagegen background attached from ${backgroundImagePath}.`,
-        "Curated renderer preserved exact Arvya logo, editable text layout, and visual QA."
+        "Curated renderer preserved exact Splay logo, editable text layout, and visual QA."
       ],
       visual,
       visual_qa: rendered.qa
@@ -184,20 +184,20 @@ function buildCodexCanvaRequest(
     canva_query: [
       "Use the QA-passed local PNG preview as the source of truth.",
       `Codex imagegen background: ${backgroundImagePath}.`,
-      "Preserve the bundled official Arvya SVG, bold sans headline, divider, and body as separate editable Canva layers.",
+      "Preserve the bundled official Splay SVG, bold sans headline, divider, and body as separate editable Canva layers.",
       "Do not add extra text, captions, icons, dashboards, charts, or decorative callouts."
     ].join(" "),
     visual_style: [
-      "Use a near-black navy field, luminous company-blue bottom-quarter waves, white type, and restrained gold accents; never allow a gray-dominant card.",
+      "Use a near-black navy field, luminous company-blue bottom-quarter waves, white type, and restrained cobalt accents; never allow a gray-dominant card.",
       "Keep the bold sans headline and support line in one compact cluster with no large empty middle zone.",
-      "Use subtle hairline rules, disciplined spacing, crisp rectangular UI silhouettes, and dark inset panels from the Arvya design system.",
+      "Use subtle hairline rules, disciplined spacing, crisp rectangular UI silhouettes, and dark inset panels from the Splay design system.",
       "Use the generated background as atmosphere only; the official logo must be at least 64px and all logo/text geometry must remain exact."
     ],
     reference_asset_paths: [],
     background_image_path: backgroundImagePath,
     canva_import_html: rendered.canvaImportHtml,
     text_layers: {
-      wordmark: "Arvya",
+      wordmark: "Splay",
       headline: visual.brief.headline,
       body: visual.brief.supporting_text
     },

@@ -42,9 +42,9 @@ function audienceFor(text: string): string {
 }
 
 function desiredResponse(pillar: ContentPillar): string {
-  if (pillar === "product_proof") return "Understand one concrete Arvya behavior and where it fits.";
+  if (pillar === "product_proof") return "Understand one concrete Splay behavior and where it fits.";
   if (pillar === "workflow_observation") return "Recognize a costly coordination problem in their own work.";
   if (pillar === "operator_insight") return "Leave with a practical way to evaluate the workflow.";
-  if (pillar === "founder_lesson") return "See the operating lesson behind how Arvya is being built.";
+  if (pillar === "founder_lesson") return "See the operating lesson behind how Splay is being built.";
   return "Reconsider a common assumption about deal software.";
 }

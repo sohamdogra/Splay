@@ -143,7 +143,7 @@ function scoreSpecificity(text: string, context: EditorialContext, rationale: st
 }
 
 function scoreVoice(text: string, errors: string[], rationale: string[]): number {
-  let score = 8 - errors.filter((error) => /jargon|Arvya\.io/i.test(error)).length * 3;
+  let score = 8 - errors.filter((error) => /jargon|Splay\.io/i.test(error)).length * 3;
   if (/\b(leverage|seamless|robust|innovative|unlock|ecosystem)\b/i.test(text)) score -= 2;
   if (averageSentenceLength(text) > 30) score -= 1;
   score = clamp(score);
@@ -152,7 +152,7 @@ function scoreVoice(text: string, errors: string[], rationale: string[]): number
 }
 
 function scorePromotionBalance(text: string, intent: PostIntent | undefined, rationale: string[]): number {
-  const index = text.toLowerCase().indexOf("arvya");
+  const index = text.toLowerCase().indexOf("splay");
   const hasProduct = index >= 0;
   let score = 8;
   if (intent?.product_role === "none" && hasProduct) score -= 3;

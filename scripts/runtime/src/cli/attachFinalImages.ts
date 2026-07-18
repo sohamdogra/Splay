@@ -63,7 +63,7 @@ for (const post of pack.posts) {
     image_url: relativeImage,
     image_provider: "codex-imagegen",
     canva_design_url: null,
-    alt_text: (entry.alt_text ?? post.alt_text) || `Arvya social graphic about ${post.topic.toLowerCase()}.`,
+    alt_text: (entry.alt_text ?? post.alt_text) || `Splay social graphic about ${post.topic.toLowerCase()}.`,
     image_notes: [
       ...(post.image_notes ?? []),
       `Full Codex imagegen final artwork attached from ${sourcePath}.`,

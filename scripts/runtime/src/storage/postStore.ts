@@ -115,10 +115,10 @@ export async function applyPublishResult(result: PublishResult): Promise<PostPac
 
 export function defaultBrandProfile(): BrandProfile {
   return {
-    name: process.env.BRAND_NAME ?? "Arvya",
+    name: process.env.BRAND_NAME ?? "Splay",
     audience: process.env.BRAND_AUDIENCE ?? "private equity, investment banking, deal teams, founders, operators",
     tone: process.env.BRAND_TONE ?? "sharp, credible, founder-led, direct, thoughtful",
-    positioning: "Arvya reads deal work where it happens and turns it into reviewable next steps.",
+    positioning: "Splay reads deal work where it happens and turns it into reviewable next steps.",
     avoid: ["generic AI hype", "revolutionize", "game changer", "fake certainty", "too many emojis", "overexplaining"]
   };
 }

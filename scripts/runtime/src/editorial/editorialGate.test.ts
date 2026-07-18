@@ -21,14 +21,14 @@ test("rejects post drafts built on internal abstractions", () => {
   assert.ok(result.errors.some((error) => error.includes("post text")));
 });
 
-test("rejects Arvya.io in post copy", () => {
+test("rejects Splay.io in post copy", () => {
   const result = checkPostDraft({
     platform: "x",
     topic: "Deal follow-ups",
-    postText: "Try Arvya.io today.",
+    postText: "Try Splay.io today.",
     hashtags: []
   });
-  assert.ok(result.errors.some((error) => error.includes("Arvya.io")));
+  assert.ok(result.errors.some((error) => error.includes("Splay.io")));
 });
 
 test("passes clean concrete post copy and warns only on length", () => {
@@ -92,7 +92,7 @@ test("rejects an unrelated X discovery tag", () => {
   const result = checkPostDraft({
     platform: "x",
     topic: "Pre-call briefs for bankers",
-    postText: "Arvya prepares the brief when the meeting lands.",
+    postText: "Splay prepares the brief when the meeting lands.",
     hashtags: ["Travel"]
   });
   assert.ok(result.errors.some((error) => error.includes("X hashtag is not supported")));
@@ -100,7 +100,7 @@ test("rejects an unrelated X discovery tag", () => {
   const relevant = checkPostDraft({
     platform: "x",
     topic: "Pre-call briefs for bankers",
-    postText: "Arvya prepares the brief when the meeting lands so bankers can decide who should join.",
+    postText: "Splay prepares the brief when the meeting lands so bankers can decide who should join.",
     hashtags: ["InvestmentBanking"]
   });
   assert.deepEqual(relevant.errors, []);

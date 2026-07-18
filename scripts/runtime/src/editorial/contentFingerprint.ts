@@ -187,8 +187,8 @@ function inferHookShape(text: string): string {
 
 function inferNarrativeShape(text: string): string {
   if (/^[-*]|^\d+\./m.test(text)) return "list";
-  if (/\bArvya\b/i.test(text) && text.toLowerCase().indexOf("arvya") < text.length * 0.45) return "product led explainer";
-  if (/\bArvya\b/i.test(text)) return "pain to product";
+  if (/\bSplay\b/i.test(text) && text.toLowerCase().indexOf("splay") < text.length * 0.45) return "product led explainer";
+  if (/\bSplay\b/i.test(text)) return "pain to product";
   if (/\bnot\b.+\b(?:but|instead)\b/is.test(text)) return "contrast argument";
   return text.split(/\n\s*\n/).length <= 2 ? "compact observation" : "operator narrative";
 }
@@ -197,7 +197,7 @@ function inferCtaShape(text: string): string {
   const last = text.trim().split(/\n/).filter(Boolean).at(-1) ?? "";
   if (last.endsWith("?")) return "question";
   if (/\b(comment|reply|dm|book|schedule)\b/i.test(last)) return "explicit";
-  if (/\bArvya\b/i.test(last)) return "product close";
+  if (/\bSplay\b/i.test(last)) return "product close";
   return "point of view close";
 }
 

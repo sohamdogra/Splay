@@ -79,7 +79,7 @@ test("accepts compact visual candidates", () => {
   assert.equal(brief.source_cue, "FROM THE WORK");
 });
 
-test("uses social-native visual copy for current Arvya content patterns", () => {
+test("uses social-native visual copy for current Splay content patterns", () => {
   const examples: Array<[string, string, string]> = [
     [
       "Dashboards show work; they do not assign it",
@@ -98,7 +98,7 @@ test("uses social-native visual copy for current Arvya content patterns", () => 
     ],
     [
       "The workflow-tool objection is really about adoption cost",
-      "Prospects worry that new systems create another destination. The strongest response has been to frame Arvya as a way to codify existing work into a lightweight operating system, not replace every tool.",
+      "Prospects worry that new systems create another destination. The strongest response has been to frame Splay as a way to codify existing work into a lightweight operating system, not replace every tool.",
       "Don't make teams work twice"
     ]
   ];

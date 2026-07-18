@@ -38,7 +38,7 @@ const definitions: TemplateDefinition[] = [
   definition("product-proof", "complex", "charcoal", "product-frame", (_brief, asset) => Boolean(asset))
 ];
 
-// The current Arvya campaign keeps layout variety while holding one recognizable
+// The current Splay campaign keeps layout variety while holding one recognizable
 // dark-blue visual system. Light and split templates remain renderable for legacy
 // packs, but new compatibility renders select from the charcoal set only.
 const campaignDefinitions = definitions.filter((item) => item.palette === "charcoal");

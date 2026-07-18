@@ -10,7 +10,7 @@ const execFileAsync = promisify(execFile);
 const cliPath = path.resolve("src/cli/attachCodexImages.ts");
 
 test("candidate-list attachment selects the first passing background", async () => {
-  const outputDir = await setupOutput("arvya-candidate-list-");
+  const outputDir = await setupOutput("splay-candidate-list-");
   const grayPath = path.join(outputDir, "gray.svg");
   const goodPath = path.join(outputDir, "good.svg");
   const mapPath = path.join(outputDir, "map.json");
@@ -40,7 +40,7 @@ test("candidate-list attachment selects the first passing background", async () 
 });
 
 test("all-fail candidate attachment leaves the post pack and prior image untouched", async () => {
-  const outputDir = await setupOutput("arvya-candidate-rollback-");
+  const outputDir = await setupOutput("splay-candidate-rollback-");
   const grayPath = path.join(outputDir, "gray.svg");
   const mapPath = path.join(outputDir, "map.json");
   const packPath = path.join(outputDir, "post-pack.json");
@@ -86,7 +86,7 @@ function testEnv(outputDir: string): NodeJS.ProcessEnv {
 function makePack() {
   return {
     generated_at: "2026-07-09T00:00:00.000Z",
-    brand: { name: "Arvya", audience: "deal teams", tone: "direct", positioning: "", avoid: [] },
+    brand: { name: "Splay", audience: "deal teams", tone: "direct", positioning: "", avoid: [] },
     discovered_themes: [],
     publish_logs: [],
     posts: [{

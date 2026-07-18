@@ -31,7 +31,7 @@ const html = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Arvya visual template contact sheet</title>
+  <title>Splay visual template contact sheet</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; padding: 32px; background: #0b1018; color: #f9fafb; font-family: system-ui, sans-serif; }
@@ -39,7 +39,7 @@ const html = `<!doctype html>
     h1 { margin: 0 0 8px; font: 400 44px Georgia, serif; }
     header p, article p { color: #d3d6d9; }
     main { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 1440px; margin: auto; }
-    article { overflow: hidden; border: 1px solid #3a424e; border-radius: 12px; background: #252a31; }
+    article { overflow: hidden; border: 1px solid #3a424e; border-radius: 12px; background: #374151; }
     img { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; }
     h2 { margin: 18px 18px 5px; font-size: 17px; text-transform: capitalize; }
     article p { margin: 0 18px 18px; font-size: 13px; }

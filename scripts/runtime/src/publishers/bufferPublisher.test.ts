@@ -3,8 +3,18 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, beforeEach, test } from "node:test";
-import type { GeneratedPost } from "../types/index.ts";
+import type { GeneratedPost, LinkedInMentionEntity } from "../types/index.ts";
 import { BufferPublisher } from "./bufferPublisher.ts";
+
+const SPLAY_LINKEDIN_ENTITY: LinkedInMentionEntity = {
+  aliases: ["Splay"],
+  id: "splay-test-org",
+  link: "https://www.linkedin.com/company/splay-test",
+  entity: "urn:li:organization:splay-test-org",
+  vanityName: "splay-test",
+  localizedName: "Splay",
+  kind: "organization"
+};
 
 const ENV_KEYS = [
   "BUFFER_API_KEY",
@@ -68,27 +78,28 @@ test("uses customScheduled and dueAt when scheduled_for is set", async () => {
   assert.match(result.message, /scheduled/i);
 });
 
-test("adds verified LinkedIn annotations for every Arvya mention", async () => {
+test("adds verified LinkedIn annotations for every Splay mention", async () => {
   const calls: Record<string, unknown>[] = [];
   globalThis.fetch = fakeBufferFetch(calls);
 
   const result = await new BufferPublisher().publish(makePost({
-    post_text: "Arvya reads the thread. Arvya suggests the update.",
-    hashtags: ["DealWorkflow"]
+    post_text: "Splay reads the thread. Splay suggests the update.",
+    hashtags: ["DealWorkflow"],
+    linkedin_mentions: [SPLAY_LINKEDIN_ENTITY]
   }));
   const input = extractInput(calls);
   const metadata = input.metadata as { linkedin: { annotations: Array<Record<string, unknown>> } };
 
   assert.equal(result.ok, true);
-  assert.equal(input.text, "Arvya, Inc. reads the thread. Arvya, Inc. suggests the update.\n\n#DealWorkflow");
+  assert.equal(input.text, "Splay reads the thread. Splay suggests the update.\n\n#DealWorkflow");
   assert.equal(metadata.linkedin.annotations.length, 2);
   assert.deepEqual(metadata.linkedin.annotations.map((annotation) => ({
     entity: annotation.entity,
     start: annotation.start,
     length: annotation.length
   })), [
-    { entity: "urn:li:organization:114174190", start: 0, length: 11 },
-    { entity: "urn:li:organization:114174190", start: 30, length: 11 }
+    { entity: SPLAY_LINKEDIN_ENTITY.entity, start: 0, length: 5 },
+    { entity: SPLAY_LINKEDIN_ENTITY.entity, start: 24, length: 5 }
   ]);
 });
 

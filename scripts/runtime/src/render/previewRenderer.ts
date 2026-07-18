@@ -24,7 +24,7 @@ function buildHtml(pack: PostPack, publishContent: Map<string, LinkedInPublishCo
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Arvya Social Review</title>
+  <title>Splay Social Review</title>
   <style>
     :root {
       color-scheme: dark;
@@ -32,11 +32,11 @@ function buildHtml(pack: PostPack, publishContent: Map<string, LinkedInPublishCo
       --muted: #d3d6d9;
       --subtle: #9ca3af;
       --line: #3a424e;
-      --paper: #151a23;
-      --panel: #252a31;
+      --paper: #1f2937;
+      --panel: #374151;
       --panel-soft: rgba(37, 42, 49, 0.72);
       --field: #0e1726;
-      --accent: #cf9742;
+      --accent: #0f5eff;
       --accent-soft: #ffd699;
       --info: #9dd8ff;
       --warn: #ffd699;
@@ -67,7 +67,7 @@ function buildHtml(pack: PostPack, publishContent: Map<string, LinkedInPublishCo
       border-bottom: 1px solid var(--line);
       background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.58)),
-        linear-gradient(135deg, #0e1726 0%, #151a23 55%, #252a31 100%);
+        linear-gradient(135deg, #0e1726 0%, #1f2937 55%, #374151 100%);
     }
     header::before {
       content: "";
@@ -294,7 +294,7 @@ function buildHtml(pack: PostPack, publishContent: Map<string, LinkedInPublishCo
     .draft {
       white-space: pre-wrap;
       font-size: 15px;
-      color: #f4f4f5;
+      color: #f3f6fa;
       padding: 14px;
       background: rgba(14, 23, 38, 0.68);
       border: 1px solid var(--line);
@@ -367,14 +367,14 @@ function buildHtml(pack: PostPack, publishContent: Map<string, LinkedInPublishCo
 <body>
   <header>
     <div class="header-row">
-      <div class="brand-pill" aria-label="Arvya social review">
+      <div class="brand-pill" aria-label="Splay social review">
         <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
             <path d="M16 3.5l2.5 4.1 4.7-1.1.7 4.8 4.4 2-3.5 3.4 2 4.4-4.8.7-1.1 4.7-4.1-2.5-4.1 2.5-1.1-4.7-4.8-.7 2-4.4-3.5-3.4 4.4-2 .7-4.8 4.7 1.1L16 3.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             <circle cx="16" cy="16" r="4.6" stroke="currentColor" stroke-width="2"/>
           </svg>
         </span>
-        <span class="brand-name">ARVYA</span>
+        <span class="brand-name">SPLAY</span>
         <span class="brand-divider" aria-hidden="true"></span>
         <span class="nav-label">Social Review</span>
       </div>
@@ -385,7 +385,7 @@ function buildHtml(pack: PostPack, publishContent: Map<string, LinkedInPublishCo
     <div class="hero">
       <p class="eyebrow">By bankers, for bankers</p>
       <h1>Review the social post pipeline</h1>
-      <p class="meta">Generated ${escapeHtml(formatDate(pack.generated_at))} for ${escapeHtml(pack.brand.name)}. Compare the shared visual, approve platform copy, and keep the final pass grounded in Arvya's deal-team voice.</p>
+      <p class="meta">Generated ${escapeHtml(formatDate(pack.generated_at))} for ${escapeHtml(pack.brand.name)}. Compare the shared visual, approve platform copy, and keep the final pass grounded in Splay's deal-team voice.</p>
       <div class="stats" aria-label="Generation summary">
         <div class="stat"><strong>${grouped.size}</strong><span>ideas</span></div>
         <div class="stat"><strong>${visualCount}</strong><span>visuals</span></div>

@@ -13,7 +13,7 @@ test("preserves intentional paragraph breaks in X posts", () => {
 
 test("adds readable paragraph breaks to dense X posts", () => {
   const fitted = fitDraftToPlatform("x", {
-    text: "The CRM says one thing. The inbox says another. That is how buyer lists go stale: the sponsor replied, the call note changed, the follow-up is still sitting in someone's head. Arvya turns the thread into the update before the tracker goes stale.",
+    text: "The CRM says one thing. The inbox says another. That is how buyer lists go stale: the sponsor replied, the call note changed, the follow-up is still sitting in someone's head. Splay turns the thread into the update before the tracker goes stale.",
     hashtags: []
   });
 
@@ -23,7 +23,7 @@ test("adds readable paragraph breaks to dense X posts", () => {
 
 test("keeps X posts under the character limit when paragraph breaks cost too much", () => {
   const fitted = fitDraftToPlatform("x", {
-    text: "The buyer replied Thursday. The tracker still says awaiting response. The VP has the note, the analyst has the follow-up, and the partner has the approval. Arvya keeps those updates tied to the thread so the list stops going stale before Monday morning.",
+    text: "The buyer replied Thursday. The tracker still says awaiting response. The VP has the note, the analyst has the follow-up, and the partner has the approval. Splay keeps those updates tied to the thread so the list stops going stale before Monday morning.",
     hashtags: ["PrivateEquity", "InvestmentBanking"]
   });
 
