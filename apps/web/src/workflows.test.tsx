@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { BrandKitView } from "./BrandKitView";
 import { CampaignsView } from "./CampaignsView";
-import { PostCard } from "./components";
+import { Composer, PostCard } from "./components";
 import type { BrandKit, SplayPost } from "./types";
 
 const brandKit: BrandKit = {
@@ -21,6 +21,27 @@ const brandKit: BrandKit = {
 };
 
 describe("campaign and brand workflows", () => {
+  it("chooses image or video generation beside the platform controls", async () => {
+    const onMediaTypeChange = vi.fn();
+    const user = userEvent.setup();
+    render(<Composer
+      idea="Retention signals"
+      platforms={{ linkedin: true, x: true }}
+      creative={false}
+      mediaType="image"
+      busy={false}
+      onIdeaChange={vi.fn()}
+      onTogglePlatform={vi.fn()}
+      onToggleCreative={vi.fn()}
+      onMediaTypeChange={onMediaTypeChange}
+      onGenerate={vi.fn()}
+    />);
+
+    expect(screen.getByRole("button", { name: "Generate image" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Generate video" }));
+    expect(onMediaTypeChange).toHaveBeenCalledWith("video");
+  });
+
   it("builds a weekly campaign request", async () => {
     const onCreate = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -105,5 +126,35 @@ describe("campaign and brand workflows", () => {
     await user.click(screen.getByRole("button", { name: "Confirm" }));
 
     expect(onPublish).toHaveBeenCalledWith("post-approved");
+  });
+
+  it.each([
+    { kind: "image", animation: undefined },
+    { kind: "video", animation: "/media/videos/post-preview.mp4" }
+  ])("opens a large $kind preview from the generated card", async ({ kind, animation }) => {
+    const user = userEvent.setup();
+    const post: SplayPost = {
+      id: `post-${kind}`,
+      platform: "linkedin",
+      topic: "Retention signals",
+      post_text: "Spot the churn signal while there is still time to act.",
+      hashtags: [],
+      status: "draft",
+      created_at: "2026-07-18T00:00:00.000Z",
+      scheduled_for: null,
+      media_url: "/media/images/post-preview.png",
+      animation_media_url: animation,
+      alt_text: "Retention signal illustration",
+      source_context: { summary: "Retention source", gbrain_references: [], why_now: "Current campaign" }
+    };
+
+    render(<PostCard post={post} onDecision={vi.fn()} onSchedule={vi.fn()} onPublish={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: `Open generated ${kind} preview` }));
+
+    const dialog = screen.getByRole("dialog", { name: `Generated ${kind} preview` });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog.querySelector(kind === "video" ? "video[controls]" : "img")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Close media preview" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

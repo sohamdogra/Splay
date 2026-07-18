@@ -8,6 +8,7 @@ This repository no longer depends on being installed or invoked as a Codex skill
 
 - A versioned API now exposes posts, media, review decisions, scheduling, generation jobs, publishing jobs, metrics, and feedback operations.
 - Recurring campaigns turn one brief into timezone-aware weekly draft slots that can be reviewed and scheduled through Buffer.
+- New-post generation can produce either a static image or a Seedance video preview, and generated media opens in a large review lightbox.
 - A versioned brand kit stores the typography, palette, audience, voice, positioning, and logo settings used by new generation runs.
 - A project-local company brain stores manually ingested context; only records explicitly approved as public-safe can enter generation prompts.
 - Long-running and output-mutating jobs are serialized so a frontend cannot accidentally run conflicting generations or publishes.
@@ -207,6 +208,7 @@ The CLI remains available for maintenance and automation, but the API is the app
 
 ```sh
 npm run generate -- --topic "what customers value during onboarding"
+npm run generate -- --topic "what customers value during onboarding" --media video
 npm run generate:auto
 npm run animate-background -- --post-id <post_id>
 npm run decide -- --id <post_id> --decision revise --reason too_generic --note "Needs a source artifact"

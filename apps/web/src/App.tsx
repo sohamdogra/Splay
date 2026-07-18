@@ -24,7 +24,7 @@ import {
 import { Composer, FilterPills, JobStrip, PostCard, Sidebar } from "./components";
 import { CampaignsView } from "./CampaignsView";
 import { BrandKitView } from "./BrandKitView";
-import type { BrandKit, Campaign, CompanyContextItem, CreateCampaignInput, CreateCompanyContextInput, Decision, Filter, Health, Job, Platform, ReviewReason, SplayPost, View } from "./types";
+import type { BrandKit, Campaign, CompanyContextItem, CreateCampaignInput, CreateCompanyContextInput, Decision, Filter, Health, Job, MediaType, Platform, ReviewReason, SplayPost, View } from "./types";
 
 const POLL_INTERVAL_MS = 1_200;
 
@@ -45,6 +45,7 @@ export default function App() {
   const [idea, setIdea] = useState("");
   const [platforms, setPlatforms] = useState<Record<Platform, boolean>>({ linkedin: true, x: true });
   const [creative, setCreative] = useState(false);
+  const [mediaType, setMediaType] = useState<MediaType>("image");
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -109,7 +110,7 @@ export default function App() {
   const handleGenerate = async () => {
     setError("");
     try {
-      const job = await generatePosts(idea, creative);
+      const job = await generatePosts(idea, creative, mediaType);
       setActiveJob(job);
       setIdea("");
     } catch (caught) {
@@ -221,10 +222,12 @@ export default function App() {
               idea={idea}
               platforms={platforms}
               creative={creative}
+              mediaType={mediaType}
               busy={busy}
               onIdeaChange={setIdea}
               onTogglePlatform={(platform) => setPlatforms((current) => ({ ...current, [platform]: !current[platform] }))}
               onToggleCreative={() => setCreative((current) => !current)}
+              onMediaTypeChange={setMediaType}
               onGenerate={handleGenerate}
             />
             {error && <div className="global-alert" role="alert">{error}</div>}

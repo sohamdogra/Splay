@@ -9,10 +9,12 @@ import { renderPreview } from "../render/previewRenderer.ts";
 import type { PostPack } from "../types/index.ts";
 import { defaultContentProgram } from "../editorial/contentProgram.ts";
 import { EDITORIAL_SPEC_VERSION } from "../editorial/editorialSpec.ts";
+import { generateBackgroundAnimations } from "../agents/backgroundAnimationAgent.ts";
 
 loadEnv();
 
 const topic = readArg("--topic");
+const media = readMediaArg();
 if (!topic) {
   console.error('Usage: npm run generate -- --topic "your topic"');
   process.exit(1);
@@ -26,7 +28,7 @@ const idea = await buildTopicFromManualInput(topic, contexts, brand);
 const drafts = await generatePostsForIdea(idea, brand);
 const posts = await attachImages(drafts);
 
-const pack: PostPack = {
+let pack: PostPack = {
   generated_at: new Date().toISOString(),
   brand,
   discovered_themes: [idea.topic],
@@ -37,12 +39,22 @@ const pack: PostPack = {
 };
 
 await savePostPack(pack);
+if (media === "video") {
+  pack = { ...pack, posts: await generateBackgroundAnimations(posts) };
+  await savePostPack(pack);
+}
 const previewPath = await renderPreview(pack);
-console.log(`Generated ${posts.length} drafts for "${idea.topic}".`);
+console.log(`Generated ${posts.length} ${media} drafts for "${idea.topic}".`);
 console.log(`Preview: ${previewPath}`);
 
 function readArg(name: string): string | undefined {
   const index = process.argv.indexOf(name);
   if (index === -1) return undefined;
   return process.argv[index + 1];
+}
+
+function readMediaArg(): "image" | "video" {
+  const value = readArg("--media") || "image";
+  if (value !== "image" && value !== "video") throw new Error("--media must be image or video.");
+  return value;
 }

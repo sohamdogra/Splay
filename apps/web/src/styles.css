@@ -254,6 +254,10 @@ h1, h2, p { margin: 0; }
 .toggle-pill.selected { border-color: #1f2937; background: #1f2937; color: #fff; }
 .toggle-pill.creative { color: #6b7280; }
 .toggle-pill.creative.selected { border-color: rgba(15, 94, 255, .35); background: #eaf1ff; color: #0a3db8; }
+.toggle-pill.media { padding-inline: 12px; }
+.toggle-pill.media svg { width: 14px; height: 14px; stroke-width: 2; }
+.toggle-pill.media.selected { border-color: rgba(15, 94, 255, .4); background: #eaf1ff; color: #0a3db8; }
+.pill-divider { width: 1px; height: 22px; margin: 0 2px; background: #e5e7eb; }
 .platform-glyph { font-size: 12px; font-weight: 700; line-height: 1; }
 .mode-hint { margin-left: auto; color: #9ca3af; font-size: 12px; white-space: nowrap; }
 
@@ -379,10 +383,46 @@ h1, h2, p { margin: 0; }
   border-radius: 12px;
   background: repeating-linear-gradient(45deg, #f3f6fa 0 8px, #fff 8px 16px);
   color: #9ca3af;
+  cursor: default;
   font: 400 9.5px ui-monospace, Menlo, monospace;
 }
-.media-slot img { width: 100%; height: 100%; object-fit: cover; }
+.media-slot:is(button) { padding: 0; cursor: zoom-in; }
+.media-slot:is(button):hover { border-color: #9db9f4; box-shadow: 0 7px 22px rgba(15, 94, 255, .16); transform: translateY(-1px); }
+.media-slot img, .media-slot video { width: 100%; height: 100%; display: block; object-fit: cover; }
 .play-badge { position: absolute; inset: 50% auto auto 50%; width: 28px; height: 28px; display: grid; place-items: center; transform: translate(-50%,-50%); border-radius: 50%; background: #1f2937; color: #fff; font-size: 10px; }
+.media-expand-hint { position: absolute; right: 7px; bottom: 7px; padding: 4px 7px; border-radius: 7px; background: rgba(15,23,42,.78); color: #fff; font: 600 8.5px "Instrument Sans", sans-serif; opacity: 0; transition: opacity .15s ease; }
+.media-slot:hover .media-expand-hint, .media-slot:focus-visible .media-expand-hint { opacity: 1; }
+
+body.media-preview-open { overflow: hidden; }
+.media-lightbox-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: rgba(8, 15, 28, .82);
+  backdrop-filter: blur(8px);
+}
+.media-lightbox {
+  position: relative;
+  width: min(1120px, 92vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px;
+  background: #0b1423;
+  box-shadow: 0 28px 90px rgba(0,0,0,.5);
+}
+.media-lightbox > img, .media-lightbox > video { width: 100%; max-height: calc(92vh - 70px); display: block; object-fit: contain; background: #050a12; }
+.media-lightbox-close { position: absolute; z-index: 2; top: 12px; right: 12px; width: 38px; height: 38px; display: grid; place-items: center; padding: 0; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; background: rgba(5,10,18,.72); color: #fff; cursor: pointer; }
+.media-lightbox-close:hover { background: #fff; color: #111827; }
+.media-lightbox-close svg { width: 18px; height: 18px; }
+.media-lightbox-caption { min-height: 62px; display: flex; align-items: center; gap: 10px; padding: 14px 18px; color: #fff; }
+.media-lightbox-caption strong { font-size: 12px; }
+.media-lightbox-caption span { min-width: 0; overflow: hidden; color: #aab6c7; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 
 .card-actions, .approved-actions, .reason-row, .confirm-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .action-button, .outline-button {
@@ -680,6 +720,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   .composer-actions { align-items: flex-end; }
   .composer-pills { flex: 1; flex-wrap: wrap; }
   .toggle-pill { padding: 8px 12px; }
+  .pill-divider { display: none; }
   .post-body { flex-direction: column; }
   .media-slot { width: 100%; order: -1; }
   .view-heading { align-items: flex-start; flex-direction: column; }
@@ -699,6 +740,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   .brand-preview-wrap { padding: 18px; }
   .brain-studio { padding: 18px; }
   .brain-ingest-footer { align-items: flex-start; flex-direction: column; }
+  .media-lightbox-backdrop { padding: 12px; }
+  .media-lightbox { width: 100%; border-radius: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

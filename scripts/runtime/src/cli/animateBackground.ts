@@ -1,17 +1,12 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { loadEnv } from "../config/loadEnv.ts";
-import { getOutputDir } from "../config/runtimeMode.ts";
 import {
   DEFAULT_ANIMATION_DURATION_SECONDS,
   MAX_ANIMATION_DURATION_SECONDS,
   MIN_ANIMATION_DURATION_SECONDS,
-  TokenMartMediaClient
 } from "../providers/tokenMartMedia.ts";
+import { generateBackgroundAnimation } from "../agents/backgroundAnimationAgent.ts";
 import { renderPreview } from "../render/previewRenderer.ts";
-import { hostImageIfLocal, isImageHostConfigured } from "../storage/imageHost.ts";
 import { loadPostPack, savePostPack } from "../storage/postStore.ts";
-import type { CanvaImageRequest, GeneratedPost } from "../types/index.ts";
 
 loadEnv();
 
@@ -30,78 +25,17 @@ const pack = await loadPostPack();
 const post = pack.posts.find((candidate) => candidate.id === postId);
 if (!post) throw new Error(`Post not found: ${postId}`);
 
-const sourceBackground = readArg("--background") || await backgroundForPost(postId);
-if (!sourceBackground) {
-  throw new Error(`Post ${postId} has no generated background plate. Generate a TokenMart background first or pass --background explicitly.`);
-}
-const publicBackgroundUrl = await publicImageUrl(post, sourceBackground);
-const prompt = animationPrompt(post, readArg("--prompt"));
-const client = new TokenMartMediaClient();
-const task = await client.createAnimation({
-  prompt,
-  imageUrl: publicBackgroundUrl,
+const updatedPost = await generateBackgroundAnimation(post, {
+  background: readArg("--background"),
+  prompt: readArg("--prompt"),
   duration,
-  resolution,
-  ratio: "16:9"
+  resolution
 });
-console.log(`TokenMart animation task submitted: ${task.id}`);
-const completed = await client.waitForAnimation(task);
-const video = await client.downloadVideo(completed.videoUrl);
-
-const outputDir = getOutputDir();
-const relativeVideoPath = `videos/${post.id}-background.mp4`;
-await mkdir(path.join(outputDir, "videos"), { recursive: true });
-await writeFile(path.join(outputDir, relativeVideoPath), video);
-
-const updatedPosts = pack.posts.map((candidate): GeneratedPost => candidate.id === post.id ? {
-  ...candidate,
-  animation_background_url: relativeVideoPath,
-  animation_provider: "tokenmart-seedance",
-  animation_model: task.model,
-  animation_task_id: task.id,
-  animation_prompt: prompt,
-  animation_notes: [
-    "Background animation only; Seedance was not asked to render the Splay logo, typography, CTA, pricing, or disclaimers.",
-    "Apply all exact brand and legal layers afterward with the deterministic HTML/canvas renderer, Canva, or Figma before publishing."
-  ]
-} : candidate);
+const updatedPosts = pack.posts.map((candidate) => candidate.id === post.id ? updatedPost : candidate);
 const updatedPack = { ...pack, posts: updatedPosts };
 await savePostPack(updatedPack);
 await renderPreview(updatedPack);
-console.log(`Background animation saved: ${relativeVideoPath}`);
-
-async function backgroundForPost(id: string): Promise<string | null> {
-  try {
-    const raw = JSON.parse(await readFile(path.join(getOutputDir(), "canva-requests.json"), "utf8")) as CanvaImageRequest[];
-    return raw.find((request) => request.post_id === id)?.background_image_path || null;
-  } catch {
-    return null;
-  }
-}
-
-async function publicImageUrl(post: GeneratedPost, source: string): Promise<string> {
-  if (/^https:\/\//i.test(source)) return source;
-  if (/^http:\/\//i.test(source)) throw new Error("Animation background URL must use HTTPS.");
-  if (!isImageHostConfigured()) {
-    throw new Error("Convex storage must be configured to give TokenMart a public URL for the local background plate.");
-  }
-  const hosted = await hostImageIfLocal({ ...post, image_url: source });
-  if (!/^https:\/\//i.test(hosted.post.image_url)) {
-    throw new Error("Convex did not return a public HTTPS URL for the animation background.");
-  }
-  return hosted.post.image_url;
-}
-
-function animationPrompt(post: GeneratedPost, requested?: string): string {
-  return [
-    requested?.trim() || `Animate the abstract visual concept for: ${post.topic}.`,
-    "Use the supplied image as the exact opening background plate and preserve its dark navy, blue wave, and restrained cobalt palette.",
-    "Create slow, premium, subtle depth and layered wave motion with a fixed, stable camera and clean negative space.",
-    "Background animation only: do not render words, letters, numbers, logos, brand marks, UI text, captions, CTA text, pricing, or disclaimers.",
-    "Do not introduce people, products, dashboards, charts, neon effects, or unrelated objects.",
-    "The exact logo, typography, CTA, pricing, and disclaimers will be composited afterward by a deterministic renderer."
-  ].join(" ");
-}
+console.log(`Background animation saved: ${updatedPost.animation_background_url}`);
 
 function readArg(name: string): string | undefined {
   const index = process.argv.indexOf(name);

@@ -19,11 +19,11 @@ describe("Splay API client", () => {
     const fetchMock = vi.fn().mockResolvedValue(response({ data: { id: "job-1" } }, 202));
     vi.stubGlobal("fetch", fetchMock);
 
-    await generatePosts("  source-backed diligence  ", true);
+    await generatePosts("  source-backed diligence  ", true, "video");
 
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/jobs/generate", expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ mode: "topic", topic: "source-backed diligence", creative: true })
+      body: JSON.stringify({ mode: "topic", topic: "source-backed diligence", creative: true, media: "video" })
     }));
   });
 

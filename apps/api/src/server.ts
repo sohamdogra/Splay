@@ -313,20 +313,25 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         const body = await readJson(request);
         const mode = body.mode === undefined ? "auto" : requiredEnum(body.mode, "mode", ["auto", "topic"] as const);
         const creative = optionalBoolean(body.creative, "creative") || false;
+        const media = body.media === undefined ? "image" : requiredEnum(body.media, "media", ["image", "video"] as const);
         const topic = mode === "topic" ? requiredString(body.topic, "topic", 500) : undefined;
         await assertGenerationSetup(mode === "auto");
+        if (media === "video") assertVideoGenerationReady();
         const script = path.join(CORE_ROOT, "src", "cli", mode === "auto" ? "generateAuto.ts" : "generate.ts");
+        const jobEnv: Record<string, string> = {};
+        if (creative) {
+          jobEnv.SOCIAL_AGENT_CREATIVE_MODE = "1";
+          jobEnv.SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST = "1";
+          jobEnv.SOCIAL_AGENT_CREATIVE_IMAGE_MODE = "tokenmart-canva";
+        }
+        if (media === "video") jobEnv.SOCIAL_AGENT_IMAGE_MODE = "tokenmart-canva";
         const command: JobCommand = {
           kind: "generate",
           command: process.execPath,
-          args: ["--experimental-strip-types", script, ...(topic ? ["--topic", topic] : [])],
+          args: ["--experimental-strip-types", script, ...(topic ? ["--topic", topic] : []), "--media", media],
           cwd: PROJECT_ROOT,
-          env: creative ? {
-            SOCIAL_AGENT_CREATIVE_MODE: "1",
-            SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST: "1",
-            SOCIAL_AGENT_CREATIVE_IMAGE_MODE: "tokenmart-canva"
-          } : undefined,
-          metadata: { mode, creative, ...(topic ? { topic } : {}) }
+          env: Object.keys(jobEnv).length > 0 ? jobEnv : undefined,
+          metadata: { mode, creative, media, ...(topic ? { topic } : {}) }
         };
         const job = jobs.enqueue(command);
         return sendJson(request, response, 202, { data: job }, requestId);
@@ -488,6 +493,16 @@ async function assertGenerationSetup(requiresContext: boolean): Promise<void> {
   }
   if (requiresContext && (await listPublicCompanyContext()).length === 0) {
     throw new HttpError(409, "Add at least one company-brain item approved for public content before auto generation.", "brain_context_required");
+  }
+}
+
+function assertVideoGenerationReady(): void {
+  if (!process.env.TOKENMART_API_KEY?.trim()) {
+    throw new HttpError(503, "TOKENMART_API_KEY is required for video generation.", "tokenmart_not_configured");
+  }
+  const hasConvexStorage = ["CONVEX_URL", "CONVEX_INGEST_TOKEN"].every((key) => Boolean(process.env[key]?.trim()));
+  if (!hasConvexStorage) {
+    throw new HttpError(503, "Convex storage is required to provide video generation with a public first-frame URL.", "media_host_not_configured");
   }
 }
 

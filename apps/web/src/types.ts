@@ -1,4 +1,5 @@
 export type Platform = "linkedin" | "x";
+export type MediaType = "image" | "video";
 export type PostStatus = "draft" | "approved" | "rejected" | "staged" | "posted" | "failed";
 export type View = "home" | "campaigns" | "queue" | "scheduled" | "brand-kit" | "analytics" | "settings";
 export type Filter = "all" | "draft" | "approved" | "staged";

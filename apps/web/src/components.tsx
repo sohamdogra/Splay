@@ -4,13 +4,16 @@ import {
   BarChart3,
   CalendarRange,
   Clock3,
+  Image as ImageIcon,
   ListFilter,
   Plus,
   Palette,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Video,
+  X as CloseIcon
 } from "lucide-react";
 import { mediaUrl, toDateTimeLocal } from "./api";
-import type { Decision, Filter, Health, Job, Platform, ReviewReason, SplayPost, View } from "./types";
+import type { Decision, Filter, Health, Job, MediaType, Platform, ReviewReason, SplayPost, View } from "./types";
 
 const navItems: Array<{ view: View; label: string; icon: ReactNode }> = [
   { view: "home", label: "New post", icon: <Plus /> },
@@ -65,19 +68,23 @@ export function Composer({
   idea,
   platforms,
   creative,
+  mediaType,
   busy,
   onIdeaChange,
   onTogglePlatform,
   onToggleCreative,
+  onMediaTypeChange,
   onGenerate
 }: {
   idea: string;
   platforms: Record<Platform, boolean>;
   creative: boolean;
+  mediaType: MediaType;
   busy: boolean;
   onIdeaChange: (value: string) => void;
   onTogglePlatform: (platform: Platform) => void;
   onToggleCreative: () => void;
+  onMediaTypeChange: (media: MediaType) => void;
   onGenerate: () => void;
 }) {
   const canSend = (platforms.linkedin || platforms.x) && !busy;
@@ -117,6 +124,23 @@ export function Composer({
             aria-label="X"
             title="X"
           ><span className="platform-glyph" aria-hidden="true">𝕏</span></button>
+          <span className="pill-divider" aria-hidden="true" />
+          <button
+            type="button"
+            className={mediaType === "image" ? "toggle-pill media selected" : "toggle-pill media"}
+            onClick={() => onMediaTypeChange("image")}
+            aria-pressed={mediaType === "image"}
+            aria-label="Generate image"
+            title="Generate an image"
+          ><ImageIcon aria-hidden="true" /><span>Image</span></button>
+          <button
+            type="button"
+            className={mediaType === "video" ? "toggle-pill media selected" : "toggle-pill media"}
+            onClick={() => onMediaTypeChange("video")}
+            aria-pressed={mediaType === "video"}
+            aria-label="Generate video"
+            title="Generate a video"
+          ><Video aria-hidden="true" /><span>Video</span></button>
           <button
             type="button"
             className={creative ? "toggle-pill creative selected" : "toggle-pill creative"}
@@ -135,10 +159,11 @@ export function Composer({
 
 export function JobStrip({ job }: { job: Job }) {
   const publishingNow = job.metadata?.mode === "now";
+  const generatingVideo = job.metadata?.media === "video";
   const generationLabels: Record<Job["status"], string> = {
     queued: "Job queued — jobs run one at a time",
-    running: "Generating — editorial tournament, compliance gates, compositor & visual QA",
-    succeeded: "Drafts ready — review below",
+    running: generatingVideo ? "Generating — posts, image plates, Seedance videos & visual QA" : "Generating — editorial tournament, images & visual QA",
+    succeeded: generatingVideo ? "Video drafts ready — review below" : "Drafts ready — review below",
     failed: job.error || "Generation failed",
     cancelled: "Job cancelled"
   };
@@ -214,8 +239,21 @@ export function PostCard({ post, onDecision, onSchedule, onPublish }: {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(toDateTimeLocal(post.scheduled_for));
   useEffect(() => setScheduleValue(toDateTimeLocal(post.scheduled_for)), [post.scheduled_for]);
+  useEffect(() => {
+    if (!previewOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    document.body.classList.add("media-preview-open");
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.body.classList.remove("media-preview-open");
+    };
+  }, [previewOpen]);
 
   const run = async (operation: () => Promise<void>) => {
     setPending(true);
@@ -239,7 +277,7 @@ export function PostCard({ post, onDecision, onSchedule, onPublish }: {
     : "";
   const status = statusPresentation[post.status];
   const image = mediaUrl(post.media_url);
-  const isVideo = post.format_type?.toLowerCase().includes("video");
+  const video = mediaUrl(post.animation_media_url || null);
   const editorialVerdict = post.editorial_evaluation?.editorial_review.verdict;
   const compliancePassed = post.editorial_evaluation?.compliance.passed !== false;
 
@@ -276,11 +314,36 @@ export function PostCard({ post, onDecision, onSchedule, onPublish }: {
           {reviewNote && <div className="revision-note">{reviewNote}</div>}
           {error && <div className="revision-note" role="alert">{error}</div>}
         </div>
-        <div className="media-slot">
-          {image ? <img src={image} alt={post.alt_text || "Generated post artwork"} /> : <span>No media preview</span>}
-          {isVideo && <span className="play-badge" aria-label="Video">▶</span>}
-        </div>
+        {video || image ? (
+          <button
+            type="button"
+            className="media-slot"
+            onClick={() => setPreviewOpen(true)}
+            aria-label={`Open generated ${video ? "video" : "image"} preview`}
+          >
+            {video
+              ? <video src={video} poster={image || undefined} muted playsInline preload="metadata" />
+              : <img src={image || ""} alt={post.alt_text || "Generated post artwork"} />}
+            {video && <span className="play-badge" aria-hidden="true">▶</span>}
+            <span className="media-expand-hint">View larger</span>
+          </button>
+        ) : <div className="media-slot"><span>No media preview</span></div>}
       </div>
+
+      {previewOpen && (
+        <div className="media-lightbox-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewOpen(false); }}>
+          <div className="media-lightbox" role="dialog" aria-modal="true" aria-label={`Generated ${video ? "video" : "image"} preview`}>
+            <button type="button" className="media-lightbox-close" autoFocus onClick={() => setPreviewOpen(false)} aria-label="Close media preview"><CloseIcon /></button>
+            {video
+              ? <video src={video} poster={image || undefined} controls autoPlay playsInline />
+              : <img src={image || ""} alt={post.alt_text || "Generated post artwork"} />}
+            <div className="media-lightbox-caption">
+              <strong>{post.platform === "linkedin" ? "LinkedIn" : "X"} {video ? "video" : "image"}</strong>
+              <span>{post.topic}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {post.status === "draft" && !reasonFor && !approvalOverride && (
         <div className="card-actions">
