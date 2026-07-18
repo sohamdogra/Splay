@@ -1,0 +1,68 @@
+{
+  "version": "2026-07-10-v2",
+  "source_policy": {
+    "restricted_slug_patterns": [
+      "^strategy/fundraising/",
+      "^deals/[^/]+/data-security"
+    ],
+    "corroboration_required_patterns": [
+      "^strategy/"
+    ],
+    "internal_sensitivity_labels": [
+      "confidential",
+      "internal_only",
+      "private",
+      "nda"
+    ]
+  },
+  "public_copy": {
+    "banned_phrases": [
+      "workflow memory",
+      "process memory",
+      "workflow fit",
+      "model iq",
+      "model intelligence",
+      "deal-ops layer",
+      "operating layer",
+      "source-backed",
+      "source context",
+      "visible artifact",
+      "operating reality",
+      "operating continuity",
+      "evidence note",
+      "useful wedge",
+      "source trail",
+      "another destination",
+      "codify existing work",
+      "adoption cost"
+    ]
+  },
+  "content_program": {
+    "workflow_observation": 0.3,
+    "product_proof": 0.25,
+    "operator_insight": 0.2,
+    "founder_lesson": 0.15,
+    "market_point_of_view": 0.1
+  },
+  "diversity": {
+    "lexical_warning_threshold": 0.74,
+    "conceptual_warning_threshold": 0.68,
+    "pain_capability_window": 5,
+    "thesis_window": 10,
+    "max_consecutive_narrative_shape": 2
+  },
+  "review": {
+    "publish_floor": 7,
+    "high_confidence_sample_size": 8,
+    "metric_windows_hours": [24, 168]
+  },
+  "visual": {
+    "treatments": [
+      "editorial_thesis",
+      "evidence_artifact",
+      "workflow_explainer",
+      "product_proof",
+      "text_only"
+    ]
+  }
+}

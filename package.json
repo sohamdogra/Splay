@@ -1,0 +1,38 @@
+{
+  "name": "arvya-social-agent",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Frontend-ready Arvya social content application backend.",
+  "scripts": {
+    "dev": "node --experimental-strip-types --watch apps/api/src/server.ts",
+    "start": "node --experimental-strip-types apps/api/src/server.ts",
+    "generate": "node --experimental-strip-types scripts/runtime/src/cli/generate.ts",
+    "generate:auto": "node --experimental-strip-types scripts/runtime/src/cli/generateAuto.ts",
+    "review": "node --experimental-strip-types scripts/runtime/src/cli/review.ts",
+    "decide": "node --experimental-strip-types scripts/runtime/src/cli/reviewDecision.ts",
+    "schedule": "node --experimental-strip-types scripts/runtime/src/cli/schedule.ts",
+    "queue-approved": "node --experimental-strip-types scripts/runtime/src/cli/publishApproved.ts",
+    "import-drafts": "node --experimental-strip-types scripts/runtime/src/cli/importCodexDrafts.ts",
+    "attach-final-images": "node --experimental-strip-types scripts/runtime/src/cli/attachFinalImages.ts",
+    "attach-background-images": "node --experimental-strip-types scripts/runtime/src/cli/attachCodexImages.ts",
+    "replace-scheduled-images": "node --experimental-strip-types scripts/runtime/src/cli/replaceScheduledImages.ts",
+    "visual:qa": "node --experimental-strip-types scripts/runtime/src/cli/visualQa.ts",
+    "visual:contact-sheet": "node --experimental-strip-types scripts/runtime/src/cli/visualContactSheet.ts",
+    "metrics:collect": "node --experimental-strip-types scripts/runtime/src/cli/metricsCollect.ts",
+    "metrics:score": "node --experimental-strip-types scripts/runtime/src/cli/metricsScore.ts",
+    "feedback:generate": "node --experimental-strip-types scripts/runtime/src/cli/feedbackGenerate.ts",
+    "feedback:print": "node --experimental-strip-types scripts/runtime/src/cli/feedbackPrint.ts",
+    "test:api": "node --experimental-strip-types --test apps/api/src/server.test.ts",
+    "test:core": "npm --prefix scripts/runtime test",
+    "test": "npm run test:api && npm run test:core",
+    "check:api": "node --experimental-strip-types --check apps/api/src/server.ts && node --experimental-strip-types --check apps/api/src/jobs.ts",
+    "check:core": "npm --prefix scripts/runtime run check",
+    "check": "npm run check:api && npm run check:core",
+    "db:generate": "npm --prefix scripts/runtime run db:generate",
+    "db:migrate": "npm --prefix scripts/runtime run db:migrate"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}

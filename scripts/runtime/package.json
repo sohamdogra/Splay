@@ -1,0 +1,52 @@
+{
+  "name": "arvya-social-agent-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic editorial, visual, publishing, and analytics core for the Arvya Social Agent application.",
+  "scripts": {
+    "generate": "node --experimental-strip-types src/cli/generate.ts",
+    "generate:auto": "node --experimental-strip-types src/cli/generateAuto.ts",
+    "generate:creative": "SOCIAL_AGENT_CREATIVE_MODE=1 SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST=1 SOCIAL_AGENT_CREATIVE_IMAGE_MODE=gpt-canva node --experimental-strip-types src/cli/generate.ts",
+    "generate:creative:auto": "SOCIAL_AGENT_CREATIVE_MODE=1 SOCIAL_AGENT_UNIQUE_IMAGES_PER_POST=1 SOCIAL_AGENT_CREATIVE_IMAGE_MODE=gpt-canva node --experimental-strip-types src/cli/generateAuto.ts",
+    "approve": "node --experimental-strip-types src/cli/approve.ts",
+    "decide": "node --experimental-strip-types src/cli/reviewDecision.ts",
+    "schedule": "node --experimental-strip-types src/cli/schedule.ts",
+    "stage-approved": "node --experimental-strip-types src/cli/publishApproved.ts",
+    "publish-approved": "node --experimental-strip-types src/cli/publishApproved.ts",
+    "queue-now": "node --experimental-strip-types src/cli/queueNowNoReview.ts",
+    "import-drafts": "node --experimental-strip-types src/cli/importCodexDrafts.ts",
+    "attach-final-images": "node --experimental-strip-types src/cli/attachFinalImages.ts",
+    "attach-codex-images": "node --experimental-strip-types src/cli/attachCodexImages.ts",
+    "replace-scheduled-images": "node --experimental-strip-types src/cli/replaceScheduledImages.ts",
+    "metrics:collect": "node --experimental-strip-types src/cli/metricsCollect.ts",
+    "metrics:checkpoints": "node --experimental-strip-types src/cli/metricsCollect.ts -- --checkpoints",
+    "metrics:score": "node --experimental-strip-types src/cli/metricsScore.ts",
+    "feedback:generate": "node --experimental-strip-types src/cli/feedbackGenerate.ts",
+    "feedback:print": "node --experimental-strip-types src/cli/feedbackPrint.ts",
+    "visual:qa": "node --experimental-strip-types src/cli/visualQa.ts",
+    "visual:contact-sheet": "node --experimental-strip-types src/cli/visualContactSheet.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:clear-feedback": "node --experimental-strip-types src/cli/dbClearFeedback.ts",
+    "review": "node --experimental-strip-types src/cli/review.ts",
+    "test:generate": "SOCIAL_AGENT_TEST_MODE=1 GBRAIN_USE_MOCK=1 SOCIAL_AGENT_USE_MOCK_LLM=1 SOCIAL_AGENT_IMAGE_MODE=placeholder node --experimental-strip-types src/cli/generate.ts",
+    "test:generate:auto": "SOCIAL_AGENT_TEST_MODE=1 GBRAIN_USE_MOCK=1 SOCIAL_AGENT_USE_MOCK_LLM=1 SOCIAL_AGENT_IMAGE_MODE=placeholder node --experimental-strip-types src/cli/generateAuto.ts",
+    "test:review": "SOCIAL_AGENT_TEST_MODE=1 node --experimental-strip-types src/cli/review.ts",
+    "test": "node --experimental-strip-types --test --test-concurrency=1 'src/**/*.test.ts'",
+    "demo": "GBRAIN_USE_MOCK=1 SOCIAL_AGENT_USE_MOCK_LLM=1 SOCIAL_AGENT_IMAGE_MODE=canva node --experimental-strip-types src/cli/generateAuto.ts",
+    "demo:gpt-canva": "GBRAIN_USE_MOCK=1 SOCIAL_AGENT_USE_MOCK_LLM=1 SOCIAL_AGENT_IMAGE_MODE=gpt-canva node --experimental-strip-types src/cli/generateAuto.ts",
+    "check": "node --experimental-strip-types --check src/cli/generateAuto.ts && node --experimental-strip-types --check src/cli/review.ts"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1075.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "pg": "^8.22.0",
+    "prisma": "^7.8.0",
+    "puppeteer": "^25.2.1"
+  }
+}

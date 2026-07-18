@@ -1,0 +1,34 @@
+:root {
+  --arvya-charcoal: #151a23;
+  --arvya-gold: #cf9742;
+  --arvya-white: #ffffff;
+  --arvya-mist: #f4f4f5;
+
+  --arvya-gray-100: #f9fafb;
+  --arvya-gray-200: #f4f4f5;
+  --arvya-gray-300: #e6e7ea;
+  --arvya-gray-400: #d3d6d9;
+  --arvya-gray-500: #a5a5a6;
+  --arvya-gray-600: #71747a;
+  --arvya-gray-700: #4f565f;
+  --arvya-gray-800: #3a424e;
+  --arvya-gray-900: #252a31;
+  --arvya-gray-990: #151a23;
+
+  --arvya-gold-20: #fff1db;
+  --arvya-gold-30: #ffd699;
+  --arvya-gold-40: #f9c16c;
+  --arvya-gold-50: #e1a954;
+  --arvya-gold-60: #cf9742;
+  --arvya-gold-80: #a36b16;
+  --arvya-gold-90: #8a5300;
+
+  --arvya-success: #34d399;
+  --arvya-error: #e3022c;
+  --arvya-error-light: #ff4e6f;
+  --arvya-error-dark: #9f001d;
+  --arvya-error-deep: #5b0011;
+
+  --arvya-font-display: "Brawler", Georgia, "Times New Roman", serif;
+  --arvya-font-sans: "Instrument Sans", Inter, Arial, sans-serif;
+}

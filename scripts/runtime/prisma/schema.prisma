@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model SocialPost {
+  id              String   @id @default(cuid())
+  localPostId     String?  @unique
+  bufferPostId    String?  @unique
+  organizationId  String?
+  channelId       String?
+  platform        String?
+  status          String
+  text            String
+  mediaMetadata   Json?
+  generationInput Json?
+  generationModel String?
+  promptVersion   String?
+  topic           String?
+  hookType        String?
+  formatType      String?
+  ctaType         String?
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  metricSnapshots MetricSnapshot[]
+  postScores      PostScore[]
+
+  @@index([platform])
+  @@index([status])
+  @@index([sentAt])
+}
+
+model MetricSnapshot {
+  id               String   @id @default(cuid())
+  socialPostId     String
+  bufferPostId      String
+  collectedAt       DateTime @default(now())
+  metricsUpdatedAt  DateTime?
+  windowHours       Int?
+  rawMetrics        Json
+
+  impressions       Int?
+  reach             Int?
+  reactions         Int?
+  comments          Int?
+  shares            Int?
+  reposts           Int?
+  saves             Int?
+  clicks            Int?
+  views             Int?
+  follows           Int?
+
+  socialPost        SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+
+  @@index([bufferPostId])
+  @@index([socialPostId])
+  @@index([collectedAt])
+}
+
+model PostScore {
+  id                         String   @id @default(cuid())
+  socialPostId                String
+  metricSnapshotId            String?
+  calculatedAt                DateTime @default(now())
+
+  denominatorSource           String?
+  engagementRate              Float?
+  commentRate                 Float?
+  shareRate                   Float?
+  saveRate                    Float?
+  clickRate                   Float?
+  followConversionRate        Float?
+
+  normalizedEngagementScore   Float?
+  normalizedCommentScore      Float?
+  normalizedShareScore        Float?
+  normalizedSaveScore         Float?
+  normalizedClickScore        Float?
+  normalizedFollowScore       Float?
+  percentileVsRecentPosts     Float?
+  percentileVsSamePlatform    Float?
+  percentileVsSameFormat      Float?
+  finalSuccessScore           Float?
+
+  label                       String?
+
+  socialPost                  SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+
+  @@index([socialPostId])
+  @@index([calculatedAt])
+  @@index([metricSnapshotId])
+}
+
+model FeedbackLesson {
+  id              String   @id @default(cuid())
+  platform        String?
+  topic           String?
+  formatType      String?
+  promptVersion   String?
+  windowStart     DateTime
+  windowEnd       DateTime
+  lessonType      String
+  summary         String
+  evidence        Json
+  createdAt       DateTime @default(now())
+
+  @@index([platform])
+  @@index([createdAt])
+}

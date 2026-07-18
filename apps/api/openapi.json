@@ -1,0 +1,202 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Arvya Social Agent API",
+    "version": "0.2.0",
+    "description": "Local-first application API for generation, review, scheduling, publishing, metrics, and frontend media access."
+  },
+  "servers": [
+    { "url": "http://127.0.0.1:4173" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message", "request_id"],
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "request_id": { "type": "string" }
+            }
+          }
+        }
+      },
+      "Job": {
+        "type": "object",
+        "required": ["id", "kind", "status", "created_at", "output"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "kind": { "type": "string", "enum": ["generate", "publish-approved", "metrics-collect", "metrics-score", "feedback-generate"] },
+          "status": { "type": "string", "enum": ["queued", "running", "succeeded", "failed", "cancelled"] },
+          "metadata": { "type": "object" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "started_at": { "type": "string", "format": "date-time" },
+          "finished_at": { "type": "string", "format": "date-time" },
+          "exit_code": { "type": "integer" },
+          "output": { "type": "string" },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "summary": "Read service health and provider readiness",
+        "security": [],
+        "responses": { "200": { "description": "Service health" } }
+      }
+    },
+    "/api/v1/openapi.json": {
+      "get": {
+        "summary": "Read this API contract",
+        "security": [],
+        "responses": { "200": { "description": "OpenAPI document" } }
+      }
+    },
+    "/api/v1/posts": {
+      "get": {
+        "summary": "List posts",
+        "parameters": [
+          { "name": "platform", "in": "query", "schema": { "type": "string", "enum": ["linkedin", "x"] } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["draft", "approved", "rejected", "staged", "posted", "failed"] } }
+        ],
+        "responses": { "200": { "description": "Post collection" } }
+      }
+    },
+    "/api/v1/posts/{id}": {
+      "get": {
+        "summary": "Read one post",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Post" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/v1/posts/{id}/decisions": {
+      "post": {
+        "summary": "Approve, revise, or reject a post",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["decision", "reason"],
+                "properties": {
+                  "decision": { "type": "string", "enum": ["approve", "revise", "reject"] },
+                  "reason": { "type": "string" },
+                  "note": { "type": "string", "maxLength": 2000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated post" }, "422": { "description": "Editorial gate rejected the mutation" } }
+      }
+    },
+    "/api/v1/posts/{id}/schedule": {
+      "put": {
+        "summary": "Set or clear an explicit schedule",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["scheduled_for"],
+                "properties": {
+                  "scheduled_for": { "type": ["string", "null"], "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated post" }, "422": { "description": "Invalid schedule" } }
+      }
+    },
+    "/api/v1/jobs": {
+      "get": {
+        "summary": "List recent background jobs",
+        "responses": { "200": { "description": "Job collection" } }
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "get": {
+        "summary": "Read background job state and bounded output",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Job" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/v1/jobs/generate": {
+      "post": {
+        "summary": "Queue automatic or topic-based generation",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mode": { "type": "string", "enum": ["auto", "topic"], "default": "auto" },
+                  "topic": { "type": "string", "maxLength": 500 },
+                  "creative": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "202": { "description": "Queued job" } }
+      }
+    },
+    "/api/v1/jobs/publish-approved": {
+      "post": {
+        "summary": "Queue approved posts in Buffer",
+        "description": "Requires explicit {\"confirm\":true}; fails closed when Buffer or required media hosting is not configured.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["confirm"],
+                "properties": { "confirm": { "type": "boolean", "const": true } }
+              }
+            }
+          }
+        },
+        "responses": { "202": { "description": "Queued publishing job" }, "503": { "description": "Publishing not configured" } }
+      }
+    },
+    "/api/v1/jobs/metrics-collect": {
+      "post": { "summary": "Queue Buffer metrics collection", "security": [{ "bearerAuth": [] }], "responses": { "202": { "description": "Queued job" } } }
+    },
+    "/api/v1/jobs/metrics-score": {
+      "post": { "summary": "Queue metric scoring", "security": [{ "bearerAuth": [] }], "responses": { "202": { "description": "Queued job" } } }
+    },
+    "/api/v1/jobs/feedback-generate": {
+      "post": { "summary": "Queue feedback lesson generation", "security": [{ "bearerAuth": [] }], "responses": { "202": { "description": "Queued job" } } }
+    },
+    "/preview": {
+      "get": { "summary": "Read the existing static review preview", "responses": { "200": { "description": "HTML preview" } } }
+    },
+    "/media/{path}": {
+      "get": {
+        "summary": "Read a generated output asset",
+        "parameters": [{ "name": "path", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Media asset" }, "404": { "description": "Not found" } }
+      }
+    }
+  }
+}

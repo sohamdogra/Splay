@@ -1,0 +1,102 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { loadEnv } from "../../../scripts/runtime/src/config/loadEnv.ts";
+
+export const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+export const CORE_ROOT = path.join(PROJECT_ROOT, "scripts", "runtime");
+
+loadEnv(path.join(PROJECT_ROOT, ".env"));
+
+setDefault("SOCIAL_AGENT_OUTPUT_DIR", path.join(PROJECT_ROOT, "output"));
+setDefault("SOCIAL_AGENT_EDITORIAL_SPEC_PATH", path.join(PROJECT_ROOT, "references", "editorial-spec.json"));
+setDefault("GBRAIN_LOCAL_REPO", path.join(PROJECT_ROOT, ".gbrain-cache"));
+if (process.env.GBRAIN_USE_MOCK === "1") {
+  setDefault("GBRAIN_CONTEXT_FILE", path.join(CORE_ROOT, "src", "data", "mockGbrainContext.json"));
+}
+
+// A frontend-driven app must not silently fall back to the legacy remote bridge.
+// Prefer the credential-free, allowlisted local GBrain reader included in this repo.
+const localGbrainBridge = path.join(PROJECT_ROOT, "scripts", "local-gbrain-mcp.py");
+if (existsSync(localGbrainBridge)) setDefault("GBRAIN_MCP_BRIDGE_PATH", localGbrainBridge);
+
+export type ApiConfig = {
+  host: string;
+  port: number;
+  allowedOrigins: Set<string>;
+  apiToken?: string;
+  bodyLimitBytes: number;
+};
+
+export const apiConfig: ApiConfig = {
+  host: process.env.API_HOST?.trim() || "127.0.0.1",
+  port: positiveInteger(process.env.API_PORT, 4173),
+  allowedOrigins: new Set(csv(process.env.API_ALLOWED_ORIGINS || [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+  ].join(","))),
+  apiToken: process.env.ARVYA_API_TOKEN?.trim() || undefined,
+  bodyLimitBytes: positiveInteger(process.env.API_BODY_LIMIT_BYTES, 2 * 1024 * 1024)
+};
+
+export function assertSafeApiConfig(config = apiConfig): void {
+  const isLoopback = ["127.0.0.1", "localhost", "::1"].includes(config.host);
+  if (!isLoopback && !config.apiToken) {
+    throw new Error("ARVYA_API_TOKEN is required when API_HOST is not a loopback address.");
+  }
+}
+
+export function publicRuntimeConfig(): Record<string, unknown> {
+  const bufferProfiles = Boolean(
+    process.env.BUFFER_LINKEDIN_PROFILE_IDS
+    || process.env.BUFFER_X_PROFILE_IDS
+    || process.env.BUFFER_PROFILE_IDS
+  );
+  const r2Configured = [
+    "R2_ENDPOINT",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY",
+    "R2_BUCKET",
+    "R2_PUBLIC_BASE_URL"
+  ].every((key) => Boolean(process.env[key]));
+
+  return {
+    service: "arvya-social-agent-api",
+    version: "0.2.0",
+    test_mode: process.env.SOCIAL_AGENT_TEST_MODE === "1",
+    authentication: apiConfig.apiToken ? "bearer" : "local-only",
+    generation: {
+      gbrain: process.env.GBRAIN_USE_MOCK === "1"
+        ? "mock"
+        : process.env.GBRAIN_MCP_HTTP_URL
+          ? "http-bridge"
+          : "local-bridge",
+      text: process.env.OPENAI_API_KEY
+        ? "openai"
+        : process.env.ANTHROPIC_API_KEY
+          ? "anthropic"
+          : "local-template",
+      image: process.env.SOCIAL_AGENT_IMAGE_MODE || "canva"
+    },
+    publishing: {
+      buffer_configured: Boolean(process.env.BUFFER_API_KEY && bufferProfiles),
+      media_host_configured: r2Configured,
+      mode: process.env.BUFFER_PUBLISH_MODE || "queue"
+    }
+  };
+}
+
+function setDefault(key: string, value: string): void {
+  if (!process.env[key]?.trim()) process.env[key] = value;
+}
+
+function csv(value: string): string[] {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function positiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}

@@ -1,0 +1,10 @@
+node_modules/
+apps/*/node_modules/
+scripts/runtime/node_modules/
+.env
+.env.local
+.gbrain-cache/
+.DS_Store
+output/
+*.tmp
+~$*.docx
