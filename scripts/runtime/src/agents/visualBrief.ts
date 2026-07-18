@@ -1,5 +1,6 @@
 import { INTERNAL_JARGON_PHRASES } from "../editorial/editorialGate.ts";
 import type { GeneratedPost, VisualBrief, VisualContentMode, VisualEvidenceItem } from "../types/index.ts";
+import { generateTokenMartJson, tokenMartTextConfigured } from "../providers/tokenMartText.ts";
 
 type Candidate = Partial<Omit<VisualBrief, "validation_status">>;
 
@@ -22,7 +23,7 @@ type VisualCopy = {
 
 export async function buildVisualBrief(post: GeneratedPost): Promise<VisualBrief> {
   const fallback = buildExtractiveBrief(post);
-  if (process.env.SOCIAL_AGENT_USE_MOCK_LLM === "1" || (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY)) {
+  if (process.env.SOCIAL_AGENT_USE_MOCK_LLM === "1" || (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY && !tokenMartTextConfigured())) {
     return fallback;
   }
 
@@ -142,6 +143,10 @@ async function requestVisualBrief(post: GeneratedPost): Promise<Candidate | null
 
   if (process.env.OPENAI_API_KEY) return callOpenAI(prompt);
   if (process.env.ANTHROPIC_API_KEY) return callAnthropic(prompt);
+  if (tokenMartTextConfigured()) {
+    const raw = await generateTokenMartJson(prompt, { maxTokens: 700 });
+    return raw ? parseCandidate(raw) : null;
+  }
   return null;
 }
 

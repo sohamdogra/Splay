@@ -20,6 +20,7 @@ import {
   type AngleBrief,
   type DraftCandidate
 } from "../editorial/editorialTournament.ts";
+import { generateTokenMartJson, tokenMartTextConfigured, tokenMartTextModel } from "../providers/tokenMartText.ts";
 
 type Draft = {
   text: string;
@@ -477,6 +478,15 @@ async function callTextModel(prompt: string, platform: Platform): Promise<Draft 
     if (draft) return draft;
   }
 
+  if (tokenMartTextConfigured()) {
+    const raw = await generateTokenMartJson(prompt, {
+      maxTokens: isCreativeMode() ? 1_100 : 900,
+      temperature: textTemperature()
+    });
+    const draft = raw ? normalizeDraft(raw, platform) : null;
+    if (draft) return draft;
+  }
+
   return null;
 }
 
@@ -584,6 +594,7 @@ function generationModelName(): string {
   if (process.env.SOCIAL_AGENT_USE_MOCK_LLM === "1") return "mock-local";
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_TEXT_MODEL ?? "claude-3-5-sonnet-latest";
   if (process.env.OPENAI_API_KEY) return process.env.OPENAI_TEXT_MODEL ?? "gpt-4.1-mini";
+  if (tokenMartTextConfigured()) return `tokenmart:${tokenMartTextModel()}`;
   return "local-template";
 }
 

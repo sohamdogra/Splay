@@ -27,6 +27,14 @@ const draft = {
   review_history: []
 };
 
+const posted = {
+  ...draft,
+  id: "post-posted",
+  platform: "x",
+  post_text: "This post has already been published.",
+  status: "posted"
+};
+
 function response(data: unknown, status = 200) {
   return {
     ok: status >= 200 && status < 300,
@@ -54,7 +62,7 @@ describe("Splay frontend", () => {
         colors: { primary: "#0F5EFF", secondary: "#0A3DB8", accent: "#DCE7FF", background: "#FBFCFE", text: "#1F2937" },
         typography: { heading_family: "Brawler", body_family: "Instrument Sans", heading_weight: 400, body_weight: 400, scale: "editorial" }
       } });
-      if (url.endsWith("/api/v1/posts") && (!init?.method || init.method === "GET")) return response({ data: [draft] });
+      if (url.endsWith("/api/v1/posts") && (!init?.method || init.method === "GET")) return response({ data: [draft, posted] });
       if (url.endsWith("/api/v1/posts/post-1/decisions")) {
         return response({ data: { ...draft, status: "approved", review_history: [{ decision: "approve", reason: "strong_insight", decided_at: "2026-07-18T16:01:00.000Z" }] } });
       }
@@ -66,6 +74,8 @@ describe("Splay frontend", () => {
     render(<App />);
     await user.click(await screen.findByRole("button", { name: "Review queue" }));
     expect(await screen.findByText("Deal context should survive the close.")).toBeInTheDocument();
+    expect(screen.queryByText("This post has already been published.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All · 1" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Approve" }));
 
     await waitFor(() => expect(screen.getByText("Approved")).toBeInTheDocument());

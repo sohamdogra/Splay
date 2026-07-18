@@ -60,11 +60,14 @@ export function publicRuntimeConfig(): Record<string, unknown> {
         ? "openai"
         : process.env.ANTHROPIC_API_KEY
           ? "anthropic"
-          : "local-template",
+          : tokenMartConfigured
+            ? `tokenmart:${process.env.TOKENMART_TEXT_MODEL || "gpt-4.1-mini"}`
+            : "local-template",
       image: process.env.SOCIAL_AGENT_IMAGE_MODE || "canva",
       media: {
         provider: "tokenmart",
         configured: tokenMartConfigured,
+        text_model: process.env.TOKENMART_TEXT_MODEL || "gpt-4.1-mini",
         image_model: process.env.TOKENMART_IMAGE_MODEL || "dola-seedream-5-0-pro-260628",
         video_model: process.env.TOKENMART_VIDEO_MODEL || "dreamina-seedance-2-0-260128"
       }

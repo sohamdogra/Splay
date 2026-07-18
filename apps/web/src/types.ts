@@ -141,6 +141,7 @@ export interface Health {
     media?: {
       provider: string;
       configured: boolean;
+      text_model?: string;
       image_model: string;
       video_model: string;
     };

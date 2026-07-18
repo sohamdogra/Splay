@@ -174,14 +174,15 @@ export default function App() {
     }
   };
 
+  const reviewPosts = useMemo(() => posts.filter((post) => ["draft", "approved", "staged"].includes(post.status)), [posts]);
   const counts = useMemo<Record<Filter, number>>(() => ({
-    all: posts.length,
-    draft: posts.filter((post) => post.status === "draft").length,
-    approved: posts.filter((post) => post.status === "approved").length,
-    staged: posts.filter((post) => post.status === "staged").length
-  }), [posts]);
+    all: reviewPosts.length,
+    draft: reviewPosts.filter((post) => post.status === "draft").length,
+    approved: reviewPosts.filter((post) => post.status === "approved").length,
+    staged: reviewPosts.filter((post) => post.status === "staged").length
+  }), [reviewPosts]);
   const homePosts = posts.filter((post) => platforms[post.platform]);
-  const queuePosts = filter === "all" ? posts : posts.filter((post) => post.status === filter);
+  const queuePosts = filter === "all" ? reviewPosts : reviewPosts.filter((post) => post.status === filter);
   const scheduledPosts = posts.filter((post) => post.status === "staged" || (post.status === "approved" && post.scheduled_for));
   const hero = view === "home" && posts.length === 0;
   const busy = Boolean(activeJob && ["queued", "running"].includes(activeJob.status));

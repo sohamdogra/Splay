@@ -191,7 +191,7 @@ Application settings:
 Provider behavior:
 
 - Company context comes only from the project-local brain. Stored-only records never enter generation prompts.
-- Text generation uses OpenAI or Anthropic when configured, otherwise the core's deterministic local generator.
+- Text generation uses OpenAI, Anthropic, or TokenMart's OpenAI-compatible endpoint when configured, otherwise the core's deterministic local generator.
 - TokenMart uses `dola-seedream-5-0-pro-260628` for concepts/backgrounds and `dreamina-seedance-2-0-260128` for background animation. Set `SOCIAL_AGENT_IMAGE_MODE=tokenmart-canva` to request generated plates.
 - Visual generation keeps exact copy, official brand assets, CTA, pricing, and disclaimers outside the generative request and under a deterministic renderer, Canva, or Figma.
 - The animation endpoint stores a raw background-only MP4 for frontend review. Buffer still publishes the validated static composite until exact video overlays have been rendered.
