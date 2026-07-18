@@ -18,6 +18,15 @@ test("separates a composer instruction from its subject and supporting facts", (
   assert.doesNotMatch(`${request.topic} ${request.brief}`, /can you make a post/i);
 });
 
+test("keeps long multiline composer context intact", () => {
+  const details = Array.from({ length: 120 }, (_, index) => `Evidence line ${index + 1}: customers need the full launch context.`).join("\n");
+  const request = parseManualPostRequest(`Post about launch readiness is important.\n${details}`);
+
+  assert.equal(request.topic, "Launch readiness");
+  assert.match(request.brief, /Evidence line 120/);
+  assert.ok(request.brief.includes("\n"));
+});
+
 test("manual ideas never place the composer instruction in generated context", async () => {
   const idea = await buildTopicFromManualInput("Please write a post on churnary.ai Churnary helps teams spot customer churn before renewal.", [], brand);
 

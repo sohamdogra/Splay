@@ -323,7 +323,7 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         const creative = optionalBoolean(body.creative, "creative") || false;
         const media = body.media === undefined ? "image" : requiredEnum(body.media, "media", ["image", "video"] as const);
         const platforms = body.platforms === undefined ? ["linkedin", "x"] satisfies Platform[] : requiredPlatforms(body.platforms);
-        const topic = mode === "topic" ? requiredString(body.topic, "topic", 500) : undefined;
+        const topic = mode === "topic" ? requiredString(body.topic, "topic", 100_000) : undefined;
         await assertGenerationSetup(mode === "auto");
         if (media === "video") assertVideoGenerationReady();
         const script = path.join(CORE_ROOT, "src", "cli", mode === "auto" ? "generateAuto.ts" : "generate.ts");

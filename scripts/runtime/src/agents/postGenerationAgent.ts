@@ -281,10 +281,11 @@ function enforceGeneratedHashtagGate(platform: Platform, draft: Draft, idea: Top
   if (hashtagErrors.length === 0) return draft;
 
   const hashtags = platform === "linkedin"
-    ? linkedinFallbackHashtags(`${idea.topic} ${idea.angle} ${idea.source_context.summary} ${draft.text}`)
+    ? linkedinFallbackHashtags(`${idea.topic} ${draft.text}`)
     : [];
   const fitted = fitDraftToPlatform(platform, { text: draft.text, hashtags });
   return {
+    ...draft,
     ...fitted,
     warnings: [...(draft.warnings ?? []), "Unsupported model hashtags were replaced with topic-aware discovery tags."]
   };

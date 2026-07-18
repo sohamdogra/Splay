@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import type { CreateAnimationInput } from "../providers/tokenMartMedia.ts";
 import type { GeneratedPost } from "../types/index.ts";
-import { generateBackgroundAnimation } from "./backgroundAnimationAgent.ts";
+import { generateBackgroundAnimation, generateBackgroundAnimations } from "./backgroundAnimationAgent.ts";
 
 test("turns a generated image plate into a persisted video preview", async () => {
   const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-generated-video-"));
@@ -44,6 +44,22 @@ test("turns a generated image plate into a persisted video preview", async () =>
     restore("SOCIAL_AGENT_OUTPUT_DIR", previousOutput);
     restore("TOKENMART_API_KEY", previousKey);
     await rm(outputDir, { recursive: true, force: true });
+  }
+});
+
+test("returns the static post when video generation is unavailable", async () => {
+  const previousKey = process.env.TOKENMART_API_KEY;
+  delete process.env.TOKENMART_API_KEY;
+
+  try {
+    const posts = await generateBackgroundAnimations([makePost()]);
+    assert.equal(posts.length, 1);
+    assert.equal(posts[0].image_url, "images/post-video.png");
+    assert.equal(posts[0].animation_background_url, undefined);
+    assert.match((posts[0].animation_notes ?? []).join(" "), /Static fallback used/i);
+    assert.match(posts[0].warnings.join(" "), /delivered the static post/i);
+  } finally {
+    restore("TOKENMART_API_KEY", previousKey);
   }
 });
 

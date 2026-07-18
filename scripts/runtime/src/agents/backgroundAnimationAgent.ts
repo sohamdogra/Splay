@@ -61,7 +61,16 @@ export async function generateBackgroundAnimations(posts: GeneratedPost[], optio
   const animated: GeneratedPost[] = [];
   for (const post of posts) {
     console.log(`Generating video preview for ${post.platform} post ${post.id}...`);
-    animated.push(await generateBackgroundAnimation(post, options));
+    try {
+      animated.push(await generateBackgroundAnimation(post, options));
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "unknown animation error";
+      animated.push({
+        ...post,
+        warnings: [...post.warnings, "Video generation was unavailable; delivered the static post instead."],
+        animation_notes: [...(post.animation_notes ?? []), `Static fallback used after video generation failed: ${reason}`]
+      });
+    }
   }
   return animated;
 }

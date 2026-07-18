@@ -103,40 +103,50 @@ export async function attachImages(posts: GeneratedPost[], outputDir = getOutput
     let sharedImage = imageAssetsByIdea.get(groupKey);
 
     if (!sharedImage) {
-      const image_provider = getImageMode();
-      const brief = await buildVisualBrief(post);
-      const approvedVisualAsset = await existingApprovedVisualAsset(post.approved_visual_asset);
-      const visualSeed = isCreativeMode() ? `${post.id}:${post.platform}:${creativeSeed}` : post.id;
-      const selectedVisual = selectVisualMetadata(brief, visualSeed, visualHistory, approvedVisualAsset);
-      const visual = lockVisualToImageCopy(post, selectedVisual);
-      const visualPost = approvedVisualAsset === post.approved_visual_asset
-        ? post
-        : { ...post, approved_visual_asset: approvedVisualAsset };
-      const image_prompt = image_provider === "tokenmart-canva"
-        ? buildGeneratedBackgroundPrompt(post, referenceAssetPaths, visual, brandKit)
-        : buildImagePrompt(post, visual, brandKit);
-      const alt_text = buildAltText(post, visual, brandKit);
-      const imageAsset = image_provider === "tokenmart-canva"
-        ? await createTokenMartCanvaAssets(visualPost, image_prompt, outputDir, visual, brandKit)
-        : await createCuratedAssets(visualPost, outputDir, visual, brandKit);
+      try {
+        const image_provider = getImageMode();
+        const brief = await buildVisualBrief(post);
+        const approvedVisualAsset = await existingApprovedVisualAsset(post.approved_visual_asset);
+        const visualSeed = isCreativeMode() ? `${post.id}:${post.platform}:${creativeSeed}` : post.id;
+        const selectedVisual = selectVisualMetadata(brief, visualSeed, visualHistory, approvedVisualAsset);
+        const visual = lockVisualToImageCopy(post, selectedVisual);
+        const visualPost = approvedVisualAsset === post.approved_visual_asset
+          ? post
+          : { ...post, approved_visual_asset: approvedVisualAsset };
+        const image_prompt = image_provider === "tokenmart-canva"
+          ? buildGeneratedBackgroundPrompt(post, referenceAssetPaths, visual, brandKit)
+          : buildImagePrompt(post, visual, brandKit);
+        const alt_text = buildAltText(post, visual, brandKit);
+        const imageAsset = image_provider === "tokenmart-canva"
+          ? await createTokenMartCanvaAssets(visualPost, image_prompt, outputDir, visual, brandKit)
+          : await createCuratedAssets(visualPost, outputDir, visual, brandKit);
 
-      sharedImage = {
-        prompt: image_prompt,
-        altText: alt_text,
-        asset: imageAsset,
-        provider: image_provider,
-        ownerPostId: post.id,
-        visual
-      };
-      imageAssetsByIdea.set(groupKey, sharedImage);
-      visualQaReports.push(imageAsset.qa);
-      const entry = historyEntry(post.id, post.created_at, visual);
-      visualHistory.push(entry);
-      newHistory.push(entry);
+        sharedImage = {
+          prompt: image_prompt,
+          altText: alt_text,
+          asset: imageAsset,
+          provider: image_provider,
+          ownerPostId: post.id,
+          visual
+        };
+        imageAssetsByIdea.set(groupKey, sharedImage);
+        visualQaReports.push(imageAsset.qa);
+        const entry = historyEntry(post.id, post.created_at, visual);
+        visualHistory.push(entry);
+        newHistory.push(entry);
 
-      if (image_provider === "canva" || image_provider === "tokenmart-canva") {
-        canvaRequests.push(buildCanvaRequest(post, image_prompt, alt_text, imageAsset, referenceAssetPaths, visual, brandKit));
+        if (image_provider === "canva" || image_provider === "tokenmart-canva") {
+          canvaRequests.push(buildCanvaRequest(post, image_prompt, alt_text, imageAsset, referenceAssetPaths, visual, brandKit));
+        }
+      } catch (error) {
+        updated.push(textOnlyMediaFallback(post, error));
+        continue;
       }
+    }
+
+    if (!sharedImage) {
+      updated.push(textOnlyMediaFallback(post, new Error("No image asset was produced.")));
+      continue;
     }
 
     const sharedNote = post.id === sharedImage.ownerPostId
@@ -168,6 +178,23 @@ export async function attachImages(posts: GeneratedPost[], outputDir = getOutput
   await appendVisualHistory(outputDir, newHistory);
 
   return updated;
+}
+
+function textOnlyMediaFallback(post: GeneratedPost, error: unknown): GeneratedPost {
+  const reason = error instanceof Error ? error.message : "unknown media error";
+  return {
+    ...post,
+    visual_treatment: "text_only",
+    image_prompt: "",
+    image_url: "",
+    image_provider: "placeholder",
+    canva_design_url: null,
+    alt_text: "",
+    warnings: [...post.warnings, "Media generation was unavailable; delivered a text-only draft."],
+    image_notes: [...(post.image_notes ?? []), `Text-only fallback used after media generation failed: ${reason}`],
+    visual: undefined,
+    visual_qa: undefined
+  };
 }
 
 function imageGroupKey(post: GeneratedPost): string {
@@ -299,10 +326,10 @@ async function createTokenMartCanvaAssets(
         };
       } catch (error) {
         notes.push(`TokenMart Seedream background candidate ${candidate} rejected: ${error instanceof Error ? error.message : "unknown error"}`);
-        if (error instanceof TokenMartApiError && !error.retryable) throw error;
+        if (error instanceof TokenMartApiError && !error.retryable) break;
       }
     }
-    throw new Error(`All ${candidateCount} TokenMart background candidate(s) failed visual QA. Refusing to substitute a deterministic live background. ${notes.join(" ")}`);
+    notes.push(`TokenMart did not produce a usable background; using the deterministic branded fallback.`);
   } else {
     notes.push("Deterministic background used because TOKENMART_API_KEY is not set.");
   }

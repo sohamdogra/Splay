@@ -87,8 +87,8 @@ test("measures generated background noise before typography and preserves provid
     assert.equal(noise?.ok, true);
     assert.equal(textVisible?.ok, true);
     assert.ok(Number(noise?.value) <= 36, `background noise=${noise?.value}`);
-    assert.match(svg, /stop-opacity="\.48"/);
-    assert.match(svg, /fill="#[0-9A-F]+" opacity="\.18"/i);
+    assert.match(svg, /stop-opacity="\.82"/);
+    assert.match(svg, /fill="#[0-9A-F]+" opacity="\.25"/i);
     assert.doesNotMatch(svg, /M-90 555/);
     assert.doesNotMatch(svg, /node-map|campaign-lower-third/);
   } finally {
@@ -182,15 +182,17 @@ test("fits the source-evidence-card headline without truncation", async () => {
   }));
 
   try {
-    const result = await renderCuratedVisual(
-      { ...makePost(), id: "source-card-fit" },
-      metadata("source-evidence-card"),
-      outputDir
-    );
+    const visual = metadata("source-evidence-card");
+    visual.brief.headline = "Headline churn starts cancellation use divider boxes";
+    const result = await renderCuratedVisual({ ...makePost(), id: "source-card-fit" }, visual, outputDir);
     const svg = await readFile(path.join(outputDir, result.svgUrl), "utf8");
+    const headline = result.renderContract.text_layers.find((layer) => layer.role === "headline");
     assert.equal(result.qa.ok, true);
-    assert.doesNotMatch(svg, /survive every\u2026|survive every[.]{3}/);
-    assert.match(svg, /handoff/);
+    assert.ok(headline);
+    assert.ok(headline.font_size <= 42);
+    assert.ok(headline.lines.length <= 3);
+    assert.doesNotMatch(svg, /\u2026|[.]{3}/);
+    assert.match(svg, /divider boxes/);
   } finally {
     await rm(outputDir, { recursive: true, force: true });
   }
@@ -199,6 +201,12 @@ test("fits the source-evidence-card headline without truncation", async () => {
 test("renders a non-Splay brand with its saved palette, wordmark, and typography", async () => {
   const outputDir = await mkdtemp(path.join(os.tmpdir(), "custom-brand-render-"));
   await Promise.all(["images", "canva-imports"].map((dir) => mkdir(path.join(outputDir, dir), { recursive: true })));
+  const backgroundPath = "images/generated-cream-background.svg";
+  await writeFile(
+    path.join(outputDir, backgroundPath),
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675"><rect width="1200" height="675" fill="#E8D9C4"/><path d="M0 560 C300 380 560 700 1200 170" fill="none" stroke="#B4532A" stroke-width="90"/><path d="M400 0 C700 180 760 420 1100 675" fill="none" stroke="#73E2C5" stroke-width="24"/></svg>`,
+    "utf8"
+  );
   const brandKit: BrandKit = {
     version: 3,
     updated_at: "2026-07-18T21:58:26.611Z",
@@ -214,7 +222,7 @@ test("renders a non-Splay brand with its saved palette, wordmark, and typography
   };
 
   try {
-    const result = await renderCuratedVisual(makePost(), metadata("dark-editorial-thesis"), outputDir, null, brandKit);
+    const result = await renderCuratedVisual(makePost(), metadata("dark-editorial-thesis"), outputDir, backgroundPath, brandKit);
     const svg = await readFile(path.join(outputDir, result.svgUrl), "utf8");
     assert.equal(result.qa.ok, true);
     assert.match(svg, /Churnary/);

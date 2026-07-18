@@ -234,7 +234,7 @@
                 "type": "object",
                 "properties": {
                   "mode": { "type": "string", "enum": ["auto", "topic"], "default": "auto" },
-                  "topic": { "type": "string", "maxLength": 500 },
+                  "topic": { "type": "string", "maxLength": 100000 },
                   "creative": { "type": "boolean", "default": false },
                   "media": { "type": "string", "enum": ["image", "video"], "default": "image" },
                   "platforms": { "type": "array", "items": { "type": "string", "enum": ["linkedin", "x"] }, "minItems": 1, "uniqueItems": true, "default": ["linkedin", "x"] }

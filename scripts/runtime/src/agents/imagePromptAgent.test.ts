@@ -121,7 +121,7 @@ test("creative mode generates separate visuals for each platform post", async ()
   }
 });
 
-test("fails closed instead of substituting a deterministic live background", async () => {
+test("falls back to a deterministic branded image when TokenMart is unavailable", async () => {
   const outputDir = await mkdtemp(path.join(os.tmpdir(), "splay-live-background-failure-"));
   const previousImageMode = process.env.SOCIAL_AGENT_IMAGE_MODE;
   const previousMockMode = process.env.SOCIAL_AGENT_USE_MOCK_LLM;
@@ -149,11 +149,12 @@ test("fails closed instead of substituting a deterministic live background", asy
   }) as typeof fetch;
 
   try {
-    await assert.rejects(
-      attachImages([makePost()], outputDir),
-      /All 2 TokenMart background candidate\(s\) failed visual QA.*Refusing to substitute a deterministic live background/
-    );
+    const posts = await attachImages([makePost()], outputDir);
     assert.equal(calls, 2);
+    assert.equal(posts.length, 1);
+    assert.match(posts[0].image_url, /\.png$/);
+    assert.equal(posts[0].visual_qa?.ok, true);
+    assert.match((posts[0].image_notes ?? []).join(" "), /deterministic branded fallback/i);
   } finally {
     restoreEnv("SOCIAL_AGENT_IMAGE_MODE", previousImageMode);
     restoreEnv("SOCIAL_AGENT_USE_MOCK_LLM", previousMockMode);

@@ -209,7 +209,9 @@ h1, h2, p { margin: 0; }
 .composer textarea {
   width: 100%;
   min-height: 72px;
+  max-height: 560px;
   resize: vertical;
+  overflow-y: hidden;
   border: 0;
   outline: 0;
   background: transparent;

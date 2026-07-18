@@ -184,6 +184,9 @@ export async function renderCuratedVisual(
     const svgRender = await renderFileToPng(browser, svgPath);
     const htmlRender = await renderFileToPng(browser, htmlPath);
     const backgroundPng = await renderSvgMarkupToPng(browser, backgroundSvg);
+    const providerBackgroundPng = backgroundHref
+      ? await renderSvgMarkupToPng(browser, renderProviderBackgroundOnlySvg(backgroundHref))
+      : backgroundPng;
     await writeFile(pngPath, svgRender.buffer);
 
     const qa = await buildVisualQaReport(browser, {
@@ -194,6 +197,7 @@ export async function renderCuratedVisual(
       svgPng: svgRender.buffer,
       htmlPng: htmlRender.buffer,
       backgroundPng,
+      providerBackgroundPng,
       svgFontsLoaded: svgRender.fontsLoaded,
       htmlFontsLoaded: htmlRender.fontsLoaded,
       scene: fittedScene,
@@ -341,7 +345,7 @@ function evidenceCard(headline: string, supporting: string, sourceCue: string): 
       <circle cx="205" cy="530" r="58" fill="none" stroke="${BLUE}" stroke-opacity=".34" stroke-width="2"/>`,
     texts: [
       label("THE TAKEAWAY", 320, 170, 720, MUTED_DARK),
-      display(headline, 320, 215, 720, 58, 2, WHITE),
+      display(headline, 320, 215, 720, 42, 3, WHITE),
       body(supporting, 320, 375, 720, 30, 2, MUTED_DARK),
       label(sourceCue, 320, 545, 720, BLUE)
     ],
@@ -462,7 +466,7 @@ async function fitSceneTexts(browser: BrowserLike, texts: SceneText[], fontCss: 
 
       function minimumSize(text: Record<string, unknown>): number {
         if (text.uppercase) return 16;
-        if (text.style === "display") return 40;
+        if (text.style === "display") return 28;
         return 20;
       }
 
@@ -625,7 +629,7 @@ function renderSvgSignature(logoHref: string, dark: boolean, brandKit: BrandKit)
 
 function generatedBackgroundLayer(backgroundHref: string, brandKit: BrandKit): string {
   const base = brandKit.colors.secondary;
-  return `<defs><linearGradient id="generatedTextShield" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${base}" stop-opacity=".48"/><stop offset=".68" stop-color="${base}" stop-opacity=".32"/><stop offset="1" stop-color="${base}" stop-opacity="0"/></linearGradient></defs><image href="${backgroundHref}" width="${WIDTH}" height="${HEIGHT}" preserveAspectRatio="xMidYMid slice"/><rect width="${WIDTH}" height="${HEIGHT}" fill="${base}" opacity=".18"/><rect x="0" y="130" width="1000" height="360" fill="url(#generatedTextShield)"/><rect width="${WIDTH}" height="${HEIGHT}" fill="${brandKit.colors.accent}" opacity=".02"/>`;
+  return `<defs><linearGradient id="generatedTextShield" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${base}" stop-opacity=".82"/><stop offset=".72" stop-color="${base}" stop-opacity=".75"/><stop offset="1" stop-color="${base}" stop-opacity=".55"/></linearGradient></defs><image href="${backgroundHref}" width="${WIDTH}" height="${HEIGHT}" preserveAspectRatio="xMidYMid slice"/><rect width="${WIDTH}" height="${HEIGHT}" fill="${base}" opacity=".25"/><rect x="0" y="120" width="1100" height="390" fill="url(#generatedTextShield)"/><rect width="${WIDTH}" height="${HEIGHT}" fill="${brandKit.colors.accent}" opacity=".02"/>`;
 }
 
 function renderSceneBackground(scene: FittedScene, backgroundHref: string | null, brandKit: BrandKit): string {
@@ -648,6 +652,12 @@ function renderBackgroundOnlySvg(
   ${renderSceneBackground(scene, backgroundHref, brandKit)}
   ${renderSceneDecorations(scene, Boolean(backgroundHref))}
   ${productHref && visual.template_family === "product-proof" ? `<image href="${productHref}" x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#productClip)"/>` : ""}
+</svg>`;
+}
+
+function renderProviderBackgroundOnlySvg(backgroundHref: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
+  <image href="${backgroundHref}" width="${WIDTH}" height="${HEIGHT}" preserveAspectRatio="xMidYMid slice"/>
 </svg>`;
 }
 
@@ -754,6 +764,7 @@ async function buildVisualQaReport(
     svgPng: Buffer;
     htmlPng: Buffer;
     backgroundPng: Buffer;
+    providerBackgroundPng: Buffer;
     svgFontsLoaded: boolean;
     htmlFontsLoaded: boolean;
     scene: FittedScene;
@@ -775,6 +786,7 @@ async function buildVisualQaReport(
 
   const stats = await analyzePng(browser, args.svgPng, rects);
   const backgroundStats = await analyzePng(browser, args.backgroundPng, rects);
+  const providerStats = await analyzePng(browser, args.providerBackgroundPng, rects);
   const pixelDiff = await comparePngs(browser, args.svgPng, args.htmlPng);
   const textContrast = args.renderContract.text_layers.map((layer) => {
     const rect = backgroundStats.rects.find((item) => item.id === layer.id);
@@ -816,10 +828,10 @@ async function buildVisualQaReport(
     ? primaryBody.y - (primaryHeadline.y + primaryHeadline.height)
     : 0;
   const requiresCompactPrimaryCopy = args.renderContract.template_family === "dark-editorial-thesis";
-  const blueBias = backgroundStats.mean[2] - backgroundStats.mean[0];
+  const blueBias = providerStats.mean[2] - providerStats.mean[0];
   const requiresBlueField = args.enforceLegacyBlueQa && args.renderContract.palette === "charcoal";
-  const campaignLowerThird = backgroundStats.rects.find((rect) => rect.id === "campaign-lower-third");
-  const campaignRightArt = backgroundStats.rects.find((rect) => rect.id === "campaign-right-art");
+  const campaignLowerThird = providerStats.rects.find((rect) => rect.id === "campaign-lower-third");
+  const campaignRightArt = providerStats.rects.find((rect) => rect.id === "campaign-right-art");
   const lowerThirdBlueBias = campaignLowerThird ? campaignLowerThird.mean[2] - campaignLowerThird.mean[0] : 0;
   const generatedArtActivity = Math.max(campaignLowerThird?.stddev ?? 0, campaignRightArt?.stddev ?? 0);
   const requiresCampaignWave = args.renderContract.template_family === "dark-editorial-thesis";
@@ -834,7 +846,7 @@ async function buildVisualQaReport(
     check("brand_signature_visible", Boolean(signature && signature.stddev >= 4), signature ? round(signature.stddev) : "missing"),
     check("brand_signature_scale", args.renderContract.signature.logo_size >= 64 && args.renderContract.signature.font_size >= 30, `${args.renderContract.signature.logo_size}px / ${args.renderContract.signature.font_size}px`),
     check("dark_blue_color_bias", !requiresBlueField || blueBias >= 8, round(blueBias)),
-    check("dark_navy_pixel_coverage", !requiresBlueField || backgroundStats.navyCoverage >= 0.72, round(backgroundStats.navyCoverage)),
+    check("dark_navy_pixel_coverage", !requiresBlueField || providerStats.navyCoverage >= 0.72, round(providerStats.navyCoverage)),
     check("lower_third_wave_activity", !requiresCampaignWave || Boolean(campaignLowerThird && campaignLowerThird.stddev >= 8 && (!args.enforceLegacyBlueQa || lowerThirdBlueBias >= 8)), campaignLowerThird ? `${round(campaignLowerThird.stddev)} / ${round(lowerThirdBlueBias)}` : "missing"),
     check("generated_background_visual_activity", !args.backgroundImagePath || generatedArtActivity >= 8, round(generatedArtActivity)),
     check("minimum_text_contrast", textContrast.every((value) => value >= 4.5), round(Math.min(...textContrast))),

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowUp,
   BarChart3,
@@ -77,7 +77,16 @@ export function Composer({
   onMediaTypeChange: (media: MediaType) => void;
   onGenerate: () => void;
 }) {
+  const ideaInput = useRef<HTMLTextAreaElement>(null);
   const canSend = (platforms.linkedin || platforms.x) && !busy;
+  useEffect(() => {
+    const input = ideaInput.current;
+    if (!input) return;
+    input.style.height = "0px";
+    const height = Math.min(Math.max(input.scrollHeight, 72), 560);
+    input.style.height = `${height}px`;
+    input.style.overflowY = input.scrollHeight > 560 ? "auto" : "hidden";
+  }, [idea]);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (canSend) onGenerate();
@@ -87,11 +96,11 @@ export function Composer({
     <form className="composer" onSubmit={submit}>
       <label className="sr-only" htmlFor="post-idea">Post idea</label>
       <textarea
+        ref={ideaInput}
         id="post-idea"
         value={idea}
         onChange={(event) => onIdeaChange(event.target.value)}
         placeholder="Describe the idea you want posted — or leave blank to use your company brain…"
-        maxLength={500}
         onKeyDown={(event) => {
           if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && canSend) onGenerate();
         }}
@@ -138,7 +147,7 @@ export function Composer({
             aria-pressed={creative}
           >✦ Creative</button>
         </div>
-        <span className="mode-hint">{idea.trim() ? "Topic mode" : "Auto · company brain"}</span>
+        <span className="mode-hint">{idea.trim() ? `Topic mode · ${idea.length.toLocaleString()} chars` : "Auto · company brain"}</span>
         <button className="send-button" type="submit" disabled={!canSend} aria-label="Generate posts">
           {busy ? <span className="spinner light" /> : <ArrowUp />}
         </button>
@@ -269,7 +278,9 @@ export function PostCard({ post, onDecision, onSchedule, onPublish }: {
   const image = mediaUrl(post.media_url);
   const video = mediaUrl(post.animation_media_url || null);
   const editorialVerdict = post.editorial_evaluation?.editorial_review.verdict;
-  const compliancePassed = post.editorial_evaluation?.compliance.passed !== false;
+  const complianceErrors = post.editorial_evaluation?.compliance.errors ?? [];
+  const hashtagOnlyComplianceFailure = complianceErrors.length > 0 && complianceErrors.every((message) => /hashtag/i.test(message));
+  const compliancePassed = post.editorial_evaluation?.compliance.passed !== false || hashtagOnlyComplianceFailure;
 
   const startApproval = () => {
     setError("");
@@ -277,7 +288,7 @@ export function PostCard({ post, onDecision, onSchedule, onPublish }: {
       setError(`This draft cannot be approved because compliance failed: ${post.editorial_evaluation?.compliance.errors.join(" · ") || "review the compliance errors"}.`);
       return;
     }
-    if (editorialVerdict === "reject") {
+    if (editorialVerdict === "reject" && !hashtagOnlyComplianceFailure) {
       setError("This draft cannot be approved because the editorial verdict is reject. Revise or regenerate it first.");
       return;
     }

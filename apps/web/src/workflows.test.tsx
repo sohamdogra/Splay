@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { BrandKitView } from "./BrandKitView";
 import { CampaignsView } from "./CampaignsView";
 import { Composer, PostCard } from "./components";
@@ -19,6 +19,8 @@ const brandKit: BrandKit = {
   typography: { heading_family: "Brawler", body_family: "Instrument Sans", heading_weight: 400, body_weight: 400, scale: "editorial" },
   logo_url: null
 };
+
+afterEach(() => cleanup());
 
 describe("campaign and brand workflows", () => {
   it("chooses image or video generation beside the platform controls", async () => {
@@ -40,6 +42,26 @@ describe("campaign and brand workflows", () => {
     expect(screen.getByRole("button", { name: "Generate image" })).toHaveAttribute("aria-pressed", "true");
     await user.click(screen.getByRole("button", { name: "Generate video" }));
     expect(onMediaTypeChange).toHaveBeenCalledWith("video");
+  });
+
+  it("keeps a long pasted brief intact in the main composer", () => {
+    const longBrief = `Detailed launch context\n\n${"customer evidence ".repeat(500)}`;
+    render(<Composer
+      idea={longBrief}
+      platforms={{ linkedin: true, x: true }}
+      creative={false}
+      mediaType="image"
+      busy={false}
+      onIdeaChange={vi.fn()}
+      onTogglePlatform={vi.fn()}
+      onToggleCreative={vi.fn()}
+      onMediaTypeChange={vi.fn()}
+      onGenerate={vi.fn()}
+    />);
+
+    const input = screen.getByLabelText("Post idea");
+    expect(input).not.toHaveAttribute("maxlength");
+    expect(input).toHaveValue(longBrief);
   });
 
   it("builds a weekly campaign request", async () => {
