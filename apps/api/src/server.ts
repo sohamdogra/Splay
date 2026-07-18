@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { constants } from "node:fs";
+import { access, mkdir } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -105,9 +107,15 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
       }
 
       if (request.method === "GET" && pathname === `${API_PREFIX}/health`) {
-        return sendJson(request, response, 200, {
-          ok: true,
-          ...publicRuntimeConfig()
+        const outputStorageWritable = await isOutputStorageWritable();
+        return sendJson(request, response, outputStorageWritable ? 200 : 503, {
+          ok: outputStorageWritable,
+          ...publicRuntimeConfig(),
+          storage: {
+            product_data: "filesystem",
+            output_writable: outputStorageWritable,
+            active_jobs: "memory"
+          }
         }, requestId);
       }
 
@@ -314,6 +322,7 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         const mode = body.mode === undefined ? "auto" : requiredEnum(body.mode, "mode", ["auto", "topic"] as const);
         const creative = optionalBoolean(body.creative, "creative") || false;
         const media = body.media === undefined ? "image" : requiredEnum(body.media, "media", ["image", "video"] as const);
+        const platforms = body.platforms === undefined ? ["linkedin", "x"] satisfies Platform[] : requiredPlatforms(body.platforms);
         const topic = mode === "topic" ? requiredString(body.topic, "topic", 500) : undefined;
         await assertGenerationSetup(mode === "auto");
         if (media === "video") assertVideoGenerationReady();
@@ -328,10 +337,10 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
         const command: JobCommand = {
           kind: "generate",
           command: process.execPath,
-          args: ["--experimental-strip-types", script, ...(topic ? ["--topic", topic] : []), "--media", media],
+          args: ["--experimental-strip-types", script, ...(topic ? ["--topic", topic] : []), "--media", media, "--platforms", platforms.join(",")],
           cwd: PROJECT_ROOT,
           env: Object.keys(jobEnv).length > 0 ? jobEnv : undefined,
-          metadata: { mode, creative, media, ...(topic ? { topic } : {}) }
+          metadata: { mode, creative, media, platforms, ...(topic ? { topic } : {}) }
         };
         const job = jobs.enqueue(command);
         return sendJson(request, response, 202, { data: job }, requestId);
@@ -435,6 +444,7 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
 
 export async function startApiServer(): Promise<Server> {
   assertSafeApiConfig();
+  await ensureOutputStorage();
   const server = createApiServer();
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -740,7 +750,23 @@ function normalizeError(error: unknown): HttpError {
 function isPublicPath(pathname: string): boolean {
   return pathname === "/"
     || pathname === `${API_PREFIX}/health`
-    || pathname === `${API_PREFIX}/openapi.json`;
+    || pathname === `${API_PREFIX}/openapi.json`
+    || pathname.startsWith("/media/");
+}
+
+async function ensureOutputStorage(): Promise<void> {
+  const outputDir = path.resolve(getOutputDir());
+  await mkdir(outputDir, { recursive: true });
+  await access(outputDir, constants.R_OK | constants.W_OK);
+}
+
+async function isOutputStorageWritable(): Promise<boolean> {
+  try {
+    await ensureOutputStorage();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

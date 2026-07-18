@@ -35,6 +35,7 @@ type Draft = {
 type GeneratePostsOptions = {
   recentPosts?: RecentPostReference[];
   creativeSeed?: string;
+  platforms?: Platform[];
 };
 
 const PROMPT_VERSION = "editorial-tournament-v4";
@@ -46,16 +47,14 @@ export async function generatePostsForIdea(
   options: GeneratePostsOptions = {}
 ): Promise<GeneratedPost[]> {
   const creativeSeed = options.creativeSeed ?? creativeRunSeed();
-  const [linkedin, x] = await Promise.all([
-    generateDraft("linkedin", idea, brand, options.recentPosts ?? [], creativeSeed),
-    generateDraft("x", idea, brand, options.recentPosts ?? [], creativeSeed)
-  ]);
+  const platforms = options.platforms?.length ? [...new Set(options.platforms)] : ["linkedin", "x"] satisfies Platform[];
+  const drafts = await Promise.all(platforms.map(async (platform) => ({
+    platform,
+    draft: await generateDraft(platform, idea, brand, options.recentPosts ?? [], creativeSeed)
+  })));
 
   const createdAt = new Date().toISOString();
-  return [
-    buildPost("linkedin", linkedin, idea, createdAt),
-    buildPost("x", x, idea, createdAt)
-  ].map(withGeneratedImageCopy);
+  return drafts.map(({ platform, draft }) => buildPost(platform, draft, idea, createdAt)).map(withGeneratedImageCopy);
 }
 
 function withGeneratedImageCopy(post: GeneratedPost): GeneratedPost {
@@ -97,7 +96,8 @@ async function generateDraft(
     return localTournamentDraft(platform, idea, brand, editorialContext, postIntent, diversity.recentPosts, creativeSeed);
   }
 
-  const angleBriefs = buildAngleBriefs({ ...idea, editorial_context: editorialContext, post_intent: postIntent });
+  const angleBriefs = buildAngleBriefs({ ...idea, editorial_context: editorialContext, post_intent: postIntent })
+    .slice(0, textCandidateCount());
   const prompts = await Promise.all(angleBriefs.map((angle) => buildPrompt(platform, idea, brand, diversity.promptContext, creativeSeed, angle, editorialContext, postIntent)));
   const remoteResults = await Promise.all(prompts.map((prompt) => callTextModel(prompt, platform)));
   const candidates = remoteResults.flatMap((remote, index) => {
@@ -118,6 +118,12 @@ async function generateDraft(
   }
 
   return tournamentDraft(platform, idea, editorialContext, postIntent, candidates, diversity.recentPosts, Boolean(idea.editorial_context));
+}
+
+function textCandidateCount(): number {
+  const parsed = Number(process.env.SOCIAL_AGENT_TEXT_CANDIDATES ?? "1");
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.max(1, Math.min(3, Math.floor(parsed)));
 }
 
 function buildPost(platform: Platform, draft: Draft, idea: TopicIdea, createdAt: string): GeneratedPost {

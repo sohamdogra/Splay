@@ -49,6 +49,17 @@ test("local post generation avoids internal strategy jargon", async () => {
   }
 });
 
+test("generates only the selected platform", async () => {
+  const previousMockMode = process.env.SOCIAL_AGENT_USE_MOCK_LLM;
+  process.env.SOCIAL_AGENT_USE_MOCK_LLM = "1";
+  try {
+    const posts = await generatePostsForIdea(makeDashboardIdea(), makeBrand(), { platforms: ["linkedin"] });
+    assert.deepEqual(posts.map((post) => post.platform), ["linkedin"]);
+  } finally {
+    restoreEnv("SOCIAL_AGENT_USE_MOCK_LLM", previousMockMode);
+  }
+});
+
 function makeDashboardIdea(): TopicIdea {
   return {
     id: "idea-dashboard-accountability",

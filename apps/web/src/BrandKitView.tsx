@@ -1,13 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Check, Database, Palette, Trash2, Type } from "lucide-react";
-import type { BrandKit, CompanyContextItem, CreateCompanyContextInput } from "./types";
+import { BrainImportView } from "./BrainImportView";
+import type { BrainImportPayload, BrandKit, CompanyContextItem, CreateCompanyContextInput } from "./types";
 
-export function BrandKitView({ brandKit, contextItems = [], onSave, onAddContext, onRemoveContext }: {
+export function BrandKitView({ brandKit, contextItems = [], onSave, onAddContext, onRemoveContext, onImportBrain }: {
   brandKit: BrandKit | null;
   contextItems?: CompanyContextItem[];
   onSave: (kit: BrandKit) => Promise<void>;
   onAddContext?: (input: CreateCompanyContextInput) => Promise<void>;
   onRemoveContext?: (id: string) => Promise<void>;
+  onImportBrain?: (payload: BrainImportPayload) => Promise<{ brandKit: BrandKit; imported: CompanyContextItem[] }>;
 }) {
   const [kit, setKit] = useState<BrandKit | null>(brandKit);
   const [saving, setSaving] = useState(false);
@@ -84,6 +86,7 @@ export function BrandKitView({ brandKit, contextItems = [], onSave, onAddContext
         </div>
         <BrandPreview kit={kit} />
       </form>
+      <BrainImportView onImport={onImportBrain} />
       <div className="brain-studio">
         <div className="control-title"><Database /><div><h2>Company brain</h2><p>Paste company facts, product notes, customer lessons, and approved source material.</p></div></div>
         <p className="brain-safety-note">Only records explicitly marked public-safe are available to generation. Stored-only records remain visible here but are excluded from prompts.</p>

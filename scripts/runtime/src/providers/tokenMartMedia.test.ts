@@ -30,7 +30,8 @@ test("generates a watermark-free Seedream background through TokenMart", async (
     size: "1280x720",
     output_format: "png",
     response_format: "b64_json",
-    watermark: false
+    watermark: false,
+    optimize_prompt_options: { mode: "fast" }
   });
   assert.equal(Buffer.from(result.bytes).toString("utf8"), "png-bytes");
   assert.equal(result.contentType, "image/png");

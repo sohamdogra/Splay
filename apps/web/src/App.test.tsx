@@ -86,5 +86,9 @@ describe("Splay frontend", () => {
     await waitFor(() => expect(screen.getByText("Approved")).toBeInTheDocument());
     const decisionCall = fetchMock.mock.calls.find(([url]) => String(url).includes("/decisions"));
     expect(decisionCall?.[1]?.body).toBe(JSON.stringify({ decision: "approve", reason: "strong_insight" }));
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByText("connected · v0.2.0")).toBeInTheDocument();
+    expect(screen.queryByText(/127\.0\.0\.1:4173/)).not.toBeInTheDocument();
   });
 });

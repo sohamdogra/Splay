@@ -70,7 +70,7 @@ For restart-on-change development:
 npm run dev
 ```
 
-The default address is `http://127.0.0.1:4173`.
+The default address is `http://127.0.0.1:4173`. In production, `PORT` takes precedence over `API_PORT`, and a non-loopback bind requires `SPLAY_API_TOKEN`.
 
 ## Run the frontend
 
@@ -108,6 +108,8 @@ Open **Campaigns** in the frontend, then:
 Pausing a campaign keeps its approved posts out of the Buffer publishing job. Campaign generation never auto-approves or silently publishes posts.
 
 Open **Brand & brain** to edit the live typography and palette preview plus the generation voice, audience, positioning, avoid-list, tagline, and logo URL. Every save creates a new local version in `output/brand-kit.json`; campaign posts record the version used to generate them. The same screen accepts company facts, product notes, customer lessons, and other source material. Context is stored in `output/company-brain.json` and is excluded from generation until **Approved for public content** is checked.
+
+For faster setup, **Quick brain import** provides a copyable coding-agent prompt and the versioned `splay-brain-import/v1` JSON contract. Run the prompt beside the company project or supplied source material, then drop the resulting JSON/text/Markdown file into Splay (or paste the response). Splay validates the complete brand kit and every context record, previews public-safe choices, and requires an explicit review confirmation before saving through the existing brand-kit and company-brain APIs.
 
 Useful endpoints:
 
@@ -173,7 +175,7 @@ curl -X POST http://127.0.0.1:4173/api/v1/jobs/publish-approved \
   -d '{"confirm":true}'
 ```
 
-If `SPLAY_API_TOKEN` is configured, add `Authorization: Bearer <token>` to every request except the root, health, and OpenAPI discovery endpoints.
+If `SPLAY_API_TOKEN` is configured, add `Authorization: Bearer <token>` to every request except the root, health, OpenAPI discovery, and generated `/media/*` preview endpoints. Media is deliberately public so browser image/video elements can load it; private post and brand data remains authenticated.
 
 ## Configuration
 
@@ -185,6 +187,7 @@ Application settings:
 
 - `API_HOST=127.0.0.1`
 - `API_PORT=4173`
+- `PORT` overrides `API_PORT` when supplied by a hosting platform
 - `API_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173`
 - `SPLAY_API_TOKEN` protects private API data and mutations and is mandatory for a non-loopback bind
 - `API_BODY_LIMIT_BYTES` defaults to 2 MiB
@@ -259,4 +262,4 @@ output/                Local post packs, previews, images, QA, and logs (ignored
 - Keep final artwork at 1200×675 and require passing visual QA.
 - Queue only approved posts unless an explicitly designed no-review product flow is added later.
 
-Before an internet or multi-user deployment, add the organization's identity-aware gateway and replace the in-memory job registry with a durable queue.
+Before an internet or multi-user deployment, add the organization's identity-aware gateway and replace the in-memory job registry with a durable queue. Active and queued jobs do not survive an API restart.

@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type {
+  BrandKit,
   GeneratedPost,
   RenderContract,
   RenderContractTextLayer,
@@ -49,7 +50,7 @@ type SceneText = {
   maxLines: number;
   align?: "left" | "center";
   style?: TextStyle;
-  weight?: 400 | 600;
+  weight?: number;
   color: string;
   uppercase?: boolean;
   tracking?: number;
@@ -144,14 +145,15 @@ export async function renderCuratedVisual(
   post: GeneratedPost,
   visual: VisualMetadata,
   outputDir: string,
-  backgroundImagePath?: string | null
+  backgroundImagePath?: string | null,
+  brandKit: BrandKit = defaultVisualBrandKit()
 ): Promise<CuratedRenderResult> {
   const lockedVisual = lockVisualToImageCopy(post, visual);
-  const rawScene = buildScene(post, lockedVisual);
+  const rawScene = applyBrandKitToScene(buildScene(post, lockedVisual), brandKit);
   const scene = { ...rawScene, texts: rawScene.texts.filter((text) => text.text.trim().length > 0) };
   const [fontCss, logoHref, backgroundHref, productHref] = await Promise.all([
     embeddedFontCss(),
-    embeddedLogo(scene.darkSignature ? "blue" : "charcoal"),
+    embeddedLogo(brandKit, scene.darkSignature),
     backgroundImagePath ? embeddedAsset(outputDir, backgroundImagePath) : Promise.resolve(null),
     lockedVisual.template_family === "product-proof" && post.approved_visual_asset
       ? embeddedAbsoluteAsset(post.approved_visual_asset)
@@ -160,12 +162,12 @@ export async function renderCuratedVisual(
 
   const browser = await launchBrowser();
   try {
-    const fittedTexts = await fitSceneTexts(browser, scene.texts, fontCss);
+    const fittedTexts = await fitSceneTexts(browser, scene.texts, fontCss, brandKit);
     const fittedScene = { ...scene, texts: compactPrimaryCopy(fittedTexts, lockedVisual) };
-    const renderContract = buildRenderContract(fittedScene, lockedVisual, backgroundImagePath ?? null);
-    const svg = renderSvg(fittedScene, lockedVisual, fontCss, logoHref, backgroundHref, productHref, renderContract);
-    const html = renderHtml(fittedScene, lockedVisual, fontCss, logoHref, backgroundHref, productHref, post.topic);
-    const backgroundSvg = renderBackgroundOnlySvg(fittedScene, backgroundHref, productHref, lockedVisual);
+    const renderContract = buildRenderContract(fittedScene, lockedVisual, backgroundImagePath ?? null, brandKit);
+    const svg = renderSvg(fittedScene, lockedVisual, fontCss, logoHref, backgroundHref, productHref, renderContract, brandKit);
+    const html = renderHtml(fittedScene, lockedVisual, fontCss, logoHref, backgroundHref, productHref, post.topic, brandKit);
+    const backgroundSvg = renderBackgroundOnlySvg(fittedScene, backgroundHref, productHref, lockedVisual, brandKit);
     const pngName = `${post.id}.png`;
     const svgName = `${post.id}.svg`;
     const htmlName = `${post.id}.html`;
@@ -196,7 +198,8 @@ export async function renderCuratedVisual(
       htmlFontsLoaded: htmlRender.fontsLoaded,
       scene: fittedScene,
       renderContract,
-      backgroundImagePath: backgroundImagePath ?? null
+      backgroundImagePath: backgroundImagePath ?? null,
+      enforceLegacyBlueQa: isDefaultSplayBrand(brandKit)
     });
 
     if (!qa.ok) {
@@ -219,9 +222,10 @@ export async function renderCuratedVisual(
 export async function renderCuratedBackground(
   post: GeneratedPost,
   visual: VisualMetadata,
-  outputDir: string
+  outputDir: string,
+  brandKit: BrandKit = defaultVisualBrandKit()
 ): Promise<string> {
-  const scene = buildScene(post, visual);
+  const scene = applyBrandKitToScene(buildScene(post, visual), brandKit);
   const fileName = `${post.id}-background.svg`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   ${scene.background}
@@ -442,18 +446,18 @@ async function launchBrowser(): Promise<BrowserLike> {
   return await puppeteer.launch({ headless: true });
 }
 
-async function fitSceneTexts(browser: BrowserLike, texts: SceneText[], fontCss: string): Promise<FittedSceneText[]> {
+async function fitSceneTexts(browser: BrowserLike, texts: SceneText[], fontCss: string, brandKit: BrandKit): Promise<FittedSceneText[]> {
   const page = await browser.newPage();
   try {
     await page.setContent(`<!doctype html><html><head><style>${fontCss}</style></head><body><canvas id="measure"></canvas></body></html>`, { waitUntil: "networkidle0" });
-    return await page.evaluate(async (rawTexts, safeBottom) => {
+    return await page.evaluate(async (rawTexts, safeBottom, headingFamily, bodyFamily) => {
       await document.fonts.ready;
       const canvas = document.getElementById("measure") as HTMLCanvasElement;
       const ctx = canvas.getContext("2d")!;
       const fitted: Array<Record<string, unknown>> = [];
 
       function family(text: Record<string, unknown>): string {
-        return text.style === "sans" ? "Instrument Sans" : "Brawler";
+        return text.style === "sans" ? String(bodyFamily) : String(headingFamily);
       }
 
       function minimumSize(text: Record<string, unknown>): number {
@@ -538,7 +542,7 @@ async function fitSceneTexts(browser: BrowserLike, texts: SceneText[], fontCss: 
         });
       }
       return fitted as unknown as FittedSceneText[];
-    }, texts, HEIGHT - VERTICAL_GUTTER);
+    }, texts, HEIGHT - VERTICAL_GUTTER, brandKit.typography.heading_family, brandKit.typography.body_family);
   } finally {
     await page.close();
   }
@@ -551,15 +555,16 @@ function renderSvg(
   logoHref: string,
   backgroundHref: string | null,
   productHref: string | null,
-  renderContract: RenderContract
+  renderContract: RenderContract,
+  brandKit: BrandKit
 ): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${escapeXml(visual.brief.headline)}">
   <defs><style>${fontCss}</style><clipPath id="productClip"><rect x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" rx="18"/></clipPath></defs>
-  ${renderSceneBackground(scene, backgroundHref)}
+  ${renderSceneBackground(scene, backgroundHref, brandKit)}
   ${renderSceneDecorations(scene, Boolean(backgroundHref))}
   ${productHref && visual.template_family === "product-proof" ? `<image href="${productHref}" x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#productClip)"/>` : ""}
-  ${renderSvgSignature(logoHref, scene.darkSignature)}
-  ${scene.texts.map(renderSvgText).join("\n  ")}
+  ${renderSvgSignature(logoHref, scene.darkSignature, brandKit)}
+  ${scene.texts.map((text) => renderSvgText(text, brandKit)).join("\n  ")}
   <metadata>${escapeXml(JSON.stringify({
     template: visual.template_family,
     density: visual.density,
@@ -577,7 +582,8 @@ function renderHtml(
   logoHref: string,
   backgroundHref: string | null,
   productHref: string | null,
-  title: string
+  title: string,
+  brandKit: BrandKit
 ): string {
   return `<!doctype html>
 <html lang="en">
@@ -593,7 +599,7 @@ function renderHtml(
     .artboard { position: relative; width: ${WIDTH}px; height: ${HEIGHT}px; overflow: hidden; }
     .decor { position: absolute; inset: 0; width: 100%; height: 100%; }
     .text { position: absolute; white-space: nowrap; }
-    .signature { position: absolute; left: ${GUTTER}px; top: ${SIGNATURE_TOP}px; display: flex; align-items: center; gap: ${SIGNATURE_GAP}px; color: ${scene.darkSignature ? WHITE : CHARCOAL}; font: 600 ${SIGNATURE_WORDMARK_SIZE}px "Instrument Sans", Inter, Arial, sans-serif; letter-spacing: .04em; }
+    .signature { position: absolute; left: ${GUTTER}px; top: ${SIGNATURE_TOP}px; display: flex; align-items: center; gap: ${SIGNATURE_GAP}px; color: ${scene.darkSignature ? brandedColor(WHITE, brandKit) : brandKit.colors.text}; font: ${brandKit.typography.body_weight} ${SIGNATURE_WORDMARK_SIZE}px ${cssFontFamily(brandKit.typography.body_family, "Inter, Arial, sans-serif")}; letter-spacing: .04em; }
     .signature img { width: ${SIGNATURE_LOGO_SIZE}px; height: ${SIGNATURE_LOGO_SIZE}px; }
   </style>
 </head>
@@ -601,28 +607,29 @@ function renderHtml(
   <main class="artboard" data-template-family="${visual.template_family}" data-density="${visual.density}" data-palette="${visual.palette}" data-motif="${visual.motif}">
     <svg class="decor" viewBox="0 0 ${WIDTH} ${HEIGHT}" aria-hidden="true">
       <defs><clipPath id="productClip"><rect x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" rx="18"/></clipPath></defs>
-      ${renderSceneBackground(scene, backgroundHref)}
+      ${renderSceneBackground(scene, backgroundHref, brandKit)}
       ${renderSceneDecorations(scene, Boolean(backgroundHref))}
       ${productHref && visual.template_family === "product-proof" ? `<image href="${productHref}" x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#productClip)"/>` : ""}
     </svg>
-    <div class="signature"><img src="${logoHref}" alt=""><span>${BRAND_SIGNATURE}</span></div>
-    ${scene.texts.map(renderHtmlText).join("\n    ")}
+    <div class="signature"><img src="${logoHref}" alt=""><span>${escapeHtml(brandKit.name)}</span></div>
+    ${scene.texts.map((text) => renderHtmlText(text, brandKit)).join("\n    ")}
   </main>
 </body>
 </html>`;
 }
 
-function renderSvgSignature(logoHref: string, dark: boolean): string {
+function renderSvgSignature(logoHref: string, dark: boolean, brandKit: BrandKit): string {
   return `<image href="${logoHref}" x="${GUTTER}" y="${SIGNATURE_TOP}" width="${SIGNATURE_LOGO_SIZE}" height="${SIGNATURE_LOGO_SIZE}"/>
-  <text x="${GUTTER + SIGNATURE_LOGO_SIZE + SIGNATURE_GAP}" y="${SIGNATURE_TOP + 47}" font-family="Instrument Sans, Inter, Arial, sans-serif" font-size="${SIGNATURE_WORDMARK_SIZE}" font-weight="600" letter-spacing="1.3" fill="${dark ? WHITE : CHARCOAL}">${BRAND_SIGNATURE}</text>`;
+  <text x="${GUTTER + SIGNATURE_LOGO_SIZE + SIGNATURE_GAP}" y="${SIGNATURE_TOP + 47}" font-family="${escapeXml(brandKit.typography.body_family)}, Inter, Arial, sans-serif" font-size="${SIGNATURE_WORDMARK_SIZE}" font-weight="${brandKit.typography.body_weight}" letter-spacing="1.3" fill="${dark ? brandedColor(WHITE, brandKit) : brandKit.colors.text}">${escapeXml(brandKit.name)}</text>`;
 }
 
-function generatedBackgroundLayer(backgroundHref: string): string {
-  return `<defs><linearGradient id="generatedTextShield" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${DEEP_NAVY}" stop-opacity=".48"/><stop offset=".68" stop-color="${DEEP_NAVY}" stop-opacity=".32"/><stop offset="1" stop-color="${DEEP_NAVY}" stop-opacity="0"/></linearGradient></defs><image href="${backgroundHref}" width="${WIDTH}" height="${HEIGHT}" preserveAspectRatio="xMidYMid slice"/><rect width="${WIDTH}" height="${HEIGHT}" fill="${DEEP_NAVY}" opacity=".18"/><rect x="0" y="130" width="1000" height="360" fill="url(#generatedTextShield)"/><rect width="${WIDTH}" height="${HEIGHT}" fill="${BLUE}" opacity=".02"/>`;
+function generatedBackgroundLayer(backgroundHref: string, brandKit: BrandKit): string {
+  const base = brandKit.colors.secondary;
+  return `<defs><linearGradient id="generatedTextShield" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${base}" stop-opacity=".48"/><stop offset=".68" stop-color="${base}" stop-opacity=".32"/><stop offset="1" stop-color="${base}" stop-opacity="0"/></linearGradient></defs><image href="${backgroundHref}" width="${WIDTH}" height="${HEIGHT}" preserveAspectRatio="xMidYMid slice"/><rect width="${WIDTH}" height="${HEIGHT}" fill="${base}" opacity=".18"/><rect x="0" y="130" width="1000" height="360" fill="url(#generatedTextShield)"/><rect width="${WIDTH}" height="${HEIGHT}" fill="${brandKit.colors.accent}" opacity=".02"/>`;
 }
 
-function renderSceneBackground(scene: FittedScene, backgroundHref: string | null): string {
-  return backgroundHref ? generatedBackgroundLayer(backgroundHref) : scene.background;
+function renderSceneBackground(scene: FittedScene, backgroundHref: string | null, brandKit: BrandKit): string {
+  return backgroundHref ? generatedBackgroundLayer(backgroundHref, brandKit) : scene.background;
 }
 
 function renderSceneDecorations(scene: FittedScene, hasGeneratedBackground: boolean): string {
@@ -633,30 +640,31 @@ function renderBackgroundOnlySvg(
   scene: FittedScene,
   backgroundHref: string | null,
   productHref: string | null,
-  visual: VisualMetadata
+  visual: VisualMetadata,
+  brandKit: BrandKit
 ): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   <defs><clipPath id="productClip"><rect x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" rx="18"/></clipPath></defs>
-  ${renderSceneBackground(scene, backgroundHref)}
+  ${renderSceneBackground(scene, backgroundHref, brandKit)}
   ${renderSceneDecorations(scene, Boolean(backgroundHref))}
   ${productHref && visual.template_family === "product-proof" ? `<image href="${productHref}" x="${PRODUCT_X}" y="${PRODUCT_Y}" width="${PRODUCT_WIDTH}" height="${PRODUCT_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#productClip)"/>` : ""}
 </svg>`;
 }
 
-function renderSvgText(text: FittedSceneText): string {
+function renderSvgText(text: FittedSceneText, brandKit: BrandKit): string {
   const anchor = text.align === "center" ? "middle" : "start";
   const x = text.align === "center" ? text.x + text.width / 2 : text.x;
-  const family = text.style === "sans" ? "Instrument Sans, Inter, Arial, sans-serif" : "Brawler, Georgia, serif";
+  const family = text.style === "sans" ? `${brandKit.typography.body_family}, Inter, Arial, sans-serif` : `${brandKit.typography.heading_family}, Georgia, serif`;
   const baseline = text.top + text.size * (text.style === "sans" ? 0.9 : 0.92);
   return text.lines.map((line, index) => `<text x="${x}" y="${Math.round(baseline + index * text.lineHeight)}" text-anchor="${anchor}" font-family="${family}" font-size="${text.size}" font-weight="${text.weight ?? 400}" letter-spacing="${text.tracking ?? 0}" fill="${text.color}">${escapeXml(line)}</text>`).join("\n  ");
 }
 
-function renderHtmlText(text: FittedSceneText): string {
-  const family = text.style === "sans" ? '"Instrument Sans", Inter, Arial, sans-serif' : 'Brawler, Georgia, serif';
+function renderHtmlText(text: FittedSceneText, brandKit: BrandKit): string {
+  const family = text.style === "sans" ? cssFontFamily(brandKit.typography.body_family, "Inter, Arial, sans-serif") : cssFontFamily(brandKit.typography.heading_family, "Georgia, serif");
   return text.lines.map((line, index) => `<div class="text" style="left:${text.x}px;top:${text.top + index * text.lineHeight}px;width:${text.width}px;text-align:${text.align ?? "left"};font:${text.weight ?? 400} ${text.size}px/${text.lineHeight}px ${family};letter-spacing:${text.tracking ?? 0}px;color:${text.color};">${escapeHtml(line)}</div>`).join("\n    ");
 }
 
-function buildRenderContract(scene: FittedScene, visual: VisualMetadata, backgroundImagePath: string | null): RenderContract {
+function buildRenderContract(scene: FittedScene, visual: VisualMetadata, backgroundImagePath: string | null, brandKit: BrandKit): RenderContract {
   return {
     width: WIDTH,
     height: HEIGHT,
@@ -675,9 +683,9 @@ function buildRenderContract(scene: FittedScene, visual: VisualMetadata, backgro
       x: GUTTER,
       y: SIGNATURE_TOP,
       logo_size: SIGNATURE_LOGO_SIZE,
-      wordmark: BRAND_SIGNATURE,
-      color: scene.darkSignature ? WHITE : CHARCOAL,
-      font_family: "Instrument Sans",
+      wordmark: brandKit.name,
+      color: scene.darkSignature ? brandedColor(WHITE, brandKit) : brandKit.colors.text,
+      font_family: brandKit.typography.body_family,
       font_size: SIGNATURE_WORDMARK_SIZE
     },
     text_layers: scene.texts.map((text, index): RenderContractTextLayer => ({
@@ -689,7 +697,7 @@ function buildRenderContract(scene: FittedScene, visual: VisualMetadata, backgro
       y: text.top,
       width: text.width,
       height: text.lineHeight * text.lines.length,
-      font_family: text.style === "sans" ? "Instrument Sans" : "Brawler",
+      font_family: text.style === "sans" ? brandKit.typography.body_family : brandKit.typography.heading_family,
       font_size: text.size,
       line_height: text.lineHeight,
       font_weight: text.weight ?? 400,
@@ -707,6 +715,7 @@ async function renderFileToPng(browser: BrowserLike, filePath: string): Promise<
     await page.setViewport({ width: WIDTH, height: HEIGHT, deviceScaleFactor: 1 });
     await page.goto(pathToFileURL(filePath).href, { waitUntil: "networkidle0" });
     const fontsLoaded = await page.evaluate(async () => {
+      await document.fonts.load('24px "Instrument Sans"');
       await document.fonts.ready;
       return document.fonts.check('24px "Instrument Sans"');
     });
@@ -750,6 +759,7 @@ async function buildVisualQaReport(
     scene: FittedScene;
     renderContract: RenderContract;
     backgroundImagePath: string | null;
+    enforceLegacyBlueQa: boolean;
   }
 ): Promise<VisualQaReport> {
   const rects = args.renderContract.text_layers.map((layer) => ({
@@ -807,7 +817,7 @@ async function buildVisualQaReport(
     : 0;
   const requiresCompactPrimaryCopy = args.renderContract.template_family === "dark-editorial-thesis";
   const blueBias = backgroundStats.mean[2] - backgroundStats.mean[0];
-  const requiresBlueField = args.renderContract.palette === "charcoal";
+  const requiresBlueField = args.enforceLegacyBlueQa && args.renderContract.palette === "charcoal";
   const campaignLowerThird = backgroundStats.rects.find((rect) => rect.id === "campaign-lower-third");
   const campaignRightArt = backgroundStats.rects.find((rect) => rect.id === "campaign-right-art");
   const lowerThirdBlueBias = campaignLowerThird ? campaignLowerThird.mean[2] - campaignLowerThird.mean[0] : 0;
@@ -825,7 +835,7 @@ async function buildVisualQaReport(
     check("brand_signature_scale", args.renderContract.signature.logo_size >= 64 && args.renderContract.signature.font_size >= 30, `${args.renderContract.signature.logo_size}px / ${args.renderContract.signature.font_size}px`),
     check("dark_blue_color_bias", !requiresBlueField || blueBias >= 8, round(blueBias)),
     check("dark_navy_pixel_coverage", !requiresBlueField || backgroundStats.navyCoverage >= 0.72, round(backgroundStats.navyCoverage)),
-    check("lower_third_wave_activity", !requiresCampaignWave || Boolean(campaignLowerThird && campaignLowerThird.stddev >= 8 && lowerThirdBlueBias >= 8), campaignLowerThird ? `${round(campaignLowerThird.stddev)} / ${round(lowerThirdBlueBias)}` : "missing"),
+    check("lower_third_wave_activity", !requiresCampaignWave || Boolean(campaignLowerThird && campaignLowerThird.stddev >= 8 && (!args.enforceLegacyBlueQa || lowerThirdBlueBias >= 8)), campaignLowerThird ? `${round(campaignLowerThird.stddev)} / ${round(lowerThirdBlueBias)}` : "missing"),
     check("generated_background_visual_activity", !args.backgroundImagePath || generatedArtActivity >= 8, round(generatedArtActivity)),
     check("minimum_text_contrast", textContrast.every((value) => value >= 4.5), round(Math.min(...textContrast))),
     check("background_text_noise", !args.backgroundImagePath || textNoise.every((value) => value <= 36), textNoise.length ? round(Math.max(...textNoise)) : 0),
@@ -1029,10 +1039,113 @@ function padItems(items: VisualEvidenceItem[], fallback: string): VisualEvidence
   return Array.from({ length: 3 }, (_, index) => items[index] ?? { text: `${fallback} ${index + 1}`, source_excerpt: fallback });
 }
 
-async function embeddedLogo(kind: "blue" | "white" | "charcoal"): Promise<string> {
-  const filePath = path.join(ROOT, "brand-kit", "assets", `splay-logo-${kind}.svg`);
-  const bytes = await readFile(filePath);
-  return `data:image/svg+xml;base64,${bytes.toString("base64")}`;
+async function embeddedLogo(brandKit: BrandKit, dark: boolean): Promise<string> {
+  if (brandKit.logo_url) {
+    if (/^(?:data:|https?:\/\/)/i.test(brandKit.logo_url)) return brandKit.logo_url;
+    try {
+      return await embeddedAbsoluteAsset(path.resolve(brandKit.logo_url));
+    } catch {
+      // Fall through to a deterministic monogram when a saved local logo has moved.
+    }
+  }
+  if (isDefaultSplayBrand(brandKit)) {
+    const kind = dark ? "blue" : "charcoal";
+    const bytes = await readFile(path.join(ROOT, "brand-kit", "assets", `splay-logo-${kind}.svg`));
+    return `data:image/svg+xml;base64,${bytes.toString("base64")}`;
+  }
+  const initial = Array.from(brandKit.name.trim())[0]?.toUpperCase() || "B";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="${brandKit.colors.primary}"/><text x="32" y="43" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="700" fill="${bestContrastColor(brandKit.colors.primary, brandKit.colors.background, brandKit.colors.text)}">${escapeXml(initial)}</text></svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
+function defaultVisualBrandKit(): BrandKit {
+  return {
+    version: 0,
+    updated_at: new Date(0).toISOString(),
+    name: "Splay",
+    tagline: "",
+    audience: "",
+    tone: "",
+    positioning: "",
+    avoid: [],
+    colors: {
+      primary: ACCENT,
+      secondary: DEEP_NAVY,
+      accent: BLUE,
+      background: MIST,
+      text: CHARCOAL
+    },
+    typography: {
+      heading_family: "Brawler",
+      body_family: "Instrument Sans",
+      heading_weight: 400,
+      body_weight: 400,
+      scale: "editorial"
+    },
+    logo_url: null
+  };
+}
+
+function applyBrandKitToScene(scene: Scene, brandKit: BrandKit): Scene {
+  const replace = (value: string) => replaceBrandColors(value, brandKit);
+  return {
+    ...scene,
+    background: replace(scene.background),
+    decorations: replace(scene.decorations),
+    generatedDecorations: scene.generatedDecorations ? replace(scene.generatedDecorations) : undefined,
+    texts: scene.texts.map((text) => ({
+      ...text,
+      color: brandedColor(text.color, brandKit),
+      style: text.role === "headline" && !isDefaultSplayBrand(brandKit) ? "display" : text.style,
+      weight: text.role === "headline" && !isDefaultSplayBrand(brandKit)
+        ? brandKit.typography.heading_weight
+        : text.weight ?? brandKit.typography.body_weight
+    }))
+  };
+}
+
+function replaceBrandColors(value: string, brandKit: BrandKit): string {
+  const replacements: Record<string, string> = {
+    [CHARCOAL]: brandKit.colors.text,
+    [PANEL]: mixHex(brandKit.colors.text, brandKit.colors.secondary, 0.45),
+    [NAVY_PANEL]: mixHex(brandKit.colors.secondary, brandKit.colors.text, 0.2),
+    [MIST]: brandKit.colors.background,
+    [WHITE]: bestContrastColor(brandKit.colors.secondary, brandKit.colors.background, "#FFFFFF"),
+    [ACCENT]: brandKit.colors.primary,
+    [BLUE]: brandKit.colors.accent,
+    [DEEP_NAVY]: brandKit.colors.secondary,
+    [MUTED_DARK]: mixHex(brandKit.colors.background, brandKit.colors.text, 0.18),
+    [MUTED_LIGHT]: mixHex(brandKit.colors.text, brandKit.colors.background, 0.2),
+    "#DBEAFE": mixHex(brandKit.colors.background, brandKit.colors.accent, 0.22)
+  };
+  return Object.entries(replacements).reduce(
+    (current, [from, to]) => current.replace(new RegExp(from, "gi"), to),
+    value
+  );
+}
+
+function brandedColor(value: string, brandKit: BrandKit): string {
+  return replaceBrandColors(value, brandKit);
+}
+
+function isDefaultSplayBrand(brandKit: BrandKit): boolean {
+  return brandKit.name.trim().toLowerCase() === "splay" && brandKit.colors.primary.toUpperCase() === ACCENT;
+}
+
+function cssFontFamily(value: string, fallback: string): string {
+  return `"${value.replace(/["\\]/g, "")}", ${fallback}`;
+}
+
+function bestContrastColor(background: string, first: string, second: string): string {
+  const backgroundRgb = hexToRgb(background);
+  return contrastRatio(hexToRgb(first), backgroundRgb) >= contrastRatio(hexToRgb(second), backgroundRgb) ? first : second;
+}
+
+function mixHex(first: string, second: string, secondWeight: number): string {
+  const left = hexToRgb(first);
+  const right = hexToRgb(second);
+  const weight = Math.max(0, Math.min(1, secondWeight));
+  return `#${left.map((value, index) => Math.round(value * (1 - weight) + right[index] * weight).toString(16).padStart(2, "0")).join("")}`.toUpperCase();
 }
 
 async function embeddedFontCss(): Promise<string> {

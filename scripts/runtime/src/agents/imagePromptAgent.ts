@@ -6,8 +6,9 @@ import { INTERNAL_JARGON_PHRASES } from "../editorial/editorialGate.ts";
 import { getOutputDir } from "../config/runtimeMode.ts";
 import { TokenMartApiError, TokenMartMediaClient } from "../providers/tokenMartMedia.ts";
 import { lockVisualToImageCopy, renderCuratedVisual } from "../render/socialVisualRenderer.ts";
+import { defaultBrandKit } from "../storage/campaignStore.ts";
 import { FINAL_IMAGE_HEIGHT, FINAL_IMAGE_WIDTH } from "../visual/finalImageContract.ts";
-import type { CanvaImageRequest, GeneratedPost, RenderContract, VisualMetadata, VisualQaReport } from "../types/index.ts";
+import type { BrandKit, CanvaImageRequest, GeneratedPost, RenderContract, VisualMetadata, VisualQaReport } from "../types/index.ts";
 import { buildVisualBrief } from "./visualBrief.ts";
 import {
   appendVisualHistory,
@@ -36,6 +37,19 @@ const SPLAY_VISUAL_STYLE = [
   "Use the official Splay fan mark with Splay as the consistent brand signature. Do not use Splay.io in social creative."
 ];
 
+function brandVisualStyle(brandKit: BrandKit): string[] {
+  if (brandKit.name.trim().toLowerCase() === "splay") return SPLAY_VISUAL_STYLE;
+  return [
+    `Use ${brandKit.name}'s saved brand kit as the sole visual source of truth.`,
+    `Use primary ${brandKit.colors.primary}, secondary ${brandKit.colors.secondary}, accent ${brandKit.colors.accent}, background ${brandKit.colors.background}, and text ${brandKit.colors.text}.`,
+    `Use ${brandKit.typography.heading_family} at weight ${brandKit.typography.heading_weight} for headings and ${brandKit.typography.body_family} at weight ${brandKit.typography.body_weight} for body copy.`,
+    `Use the saved ${brandKit.name} logo when present; otherwise use a restrained monogram. Never insert the Splay logo or Splay wordmark.`,
+    `Keep a ${FINAL_IMAGE_WIDTH}x${FINAL_IMAGE_HEIGHT} 16:9 social-card format with clear hierarchy, safe margins, and concise copy.`,
+    "Use the primary color as a controlled accent, not an automatic full-canvas wash. Balance the background, secondary, accent, and text colors according to readable contrast.",
+    "Avoid generic AI gradients, fake dashboards, robots, stock-photo office scenes, illegible text, and decorative clutter."
+  ];
+}
+
 type ImageMode = "canva" | "tokenmart-canva" | "placeholder";
 
 type ImageAssetResult = {
@@ -58,7 +72,7 @@ type SharedImageAsset = {
   visual: VisualMetadata;
 };
 
-export async function attachImages(posts: GeneratedPost[], outputDir = getOutputDir()): Promise<GeneratedPost[]> {
+export async function attachImages(posts: GeneratedPost[], outputDir = getOutputDir(), brandKit: BrandKit = defaultBrandKit()): Promise<GeneratedPost[]> {
   await mkdir(path.join(outputDir, "images"), { recursive: true });
   await mkdir(path.join(outputDir, "canva-imports"), { recursive: true });
   const updated: GeneratedPost[] = [];
@@ -99,12 +113,12 @@ export async function attachImages(posts: GeneratedPost[], outputDir = getOutput
         ? post
         : { ...post, approved_visual_asset: approvedVisualAsset };
       const image_prompt = image_provider === "tokenmart-canva"
-        ? buildGeneratedBackgroundPrompt(post, referenceAssetPaths, visual)
-        : buildImagePrompt(post, visual);
-      const alt_text = buildAltText(post, visual);
+        ? buildGeneratedBackgroundPrompt(post, referenceAssetPaths, visual, brandKit)
+        : buildImagePrompt(post, visual, brandKit);
+      const alt_text = buildAltText(post, visual, brandKit);
       const imageAsset = image_provider === "tokenmart-canva"
-        ? await createTokenMartCanvaAssets(visualPost, image_prompt, outputDir, visual)
-        : await createCuratedAssets(visualPost, outputDir, visual);
+        ? await createTokenMartCanvaAssets(visualPost, image_prompt, outputDir, visual, brandKit)
+        : await createCuratedAssets(visualPost, outputDir, visual, brandKit);
 
       sharedImage = {
         prompt: image_prompt,
@@ -121,7 +135,7 @@ export async function attachImages(posts: GeneratedPost[], outputDir = getOutput
       newHistory.push(entry);
 
       if (image_provider === "canva" || image_provider === "tokenmart-canva") {
-        canvaRequests.push(buildCanvaRequest(post, image_prompt, alt_text, imageAsset, referenceAssetPaths, visual));
+        canvaRequests.push(buildCanvaRequest(post, image_prompt, alt_text, imageAsset, referenceAssetPaths, visual, brandKit));
       }
     }
 
@@ -182,35 +196,39 @@ async function existingApprovedVisualAsset(value: string | null | undefined): Pr
   }
 }
 
-function buildImagePrompt(post: GeneratedPost, visual: VisualMetadata): string {
+function buildImagePrompt(post: GeneratedPost, visual: VisualMetadata, brandKit: BrandKit): string {
   return [
-    "Create a Splay startup social image brief.",
+    `Create a ${brandKit.name} social image brief.`,
     `Topic: ${post.topic}.`,
     `Approved template: ${visual.template_family}; density: ${visual.density}; palette: ${visual.palette}; motif: ${visual.motif}.`,
     ...creativeVisualInstructions(post, visual),
-    ...SPLAY_VISUAL_STYLE,
-    "The references guide design philosophy only. Vary the layout and wave geometry, but keep the same dark-blue color balance and recurring flowing-wave signature."
+    ...brandVisualStyle(brandKit),
+    `Use the saved ${brandKit.name} brand kit as the source of truth for palette, typography, logo treatment, and visual format.`
   ].join(" ");
 }
 
-function buildGeneratedBackgroundPrompt(post: GeneratedPost, referenceAssetPaths: string[], visual: VisualMetadata): string {
+function buildGeneratedBackgroundPrompt(post: GeneratedPost, referenceAssetPaths: string[], visual: VisualMetadata, brandKit: BrandKit): string {
   return [
-    "Generate a premium abstract background plate for a Splay social post.",
+    `Generate a premium abstract background plate for a ${brandKit.name} social post.`,
     "This is background artwork only. Do not render words, letters, logos, brand marks, symbols, typography, captions, UI text, CTA text, pricing, disclaimers, numbers, or a visible headline.",
-    "The exact headline, official logo, Splay signature, typography, CTA, pricing, and disclaimers will be added afterward by a deterministic renderer, Canva, or Figma.",
+    `The exact headline, official logo or brand monogram, ${brandKit.name} signature, typography, CTA, pricing, and disclaimers will be added afterward by a deterministic renderer, Canva, or Figma.`,
     `Compose the background for a final ${FINAL_IMAGE_WIDTH}x${FINAL_IMAGE_HEIGHT} (16:9) crop; do not build a portrait or square composition.`,
     `Topic guiding the mood: ${post.topic}.`,
-    `Visual direction: ${visual.motif} using the ${visual.palette} palette for the ${visual.template_family} curated layout.`,
+    `Visual direction: ${visual.motif} for the ${visual.template_family} curated layout.`,
     ...creativeVisualInstructions(post, visual),
     "Design philosophy: credible editorial clarity, restrained brand expression, and source-aware visual storytelling.",
     "Use depth, atmosphere, focus, high contrast, and quiet restraint. Keep clean negative space where text can sit.",
-    "Use a near-black dark navy-blue plus Charcoal #1F2937 base, luminous layered flowing waves in company blue #60A5FA, and only a small 3-5% Splay Blue #0F5EFF accent. Keep the bottom quarter visually active and never create a gray or washed-out neutral dominant field.",
-    "Do not copy the local SPLAY references exactly; use them only as a quality bar for palette discipline, editorial polish, source-citation motifs, and institutional restraint.",
-    referenceAssetPaths.length > 0
-      ? `Local style references available to the downstream Canva step: ${referenceAssetPaths.join(", ")}.`
-      : "No local SPLAY reference exports were found.",
+    brandKit.name.trim().toLowerCase() === "splay"
+      ? "Use a dark navy-blue base with layered flowing wave energy, while keeping the saved Splay palette values authoritative. Never create a gray or washed-out neutral dominant field."
+      : `Use only the saved brand palette: primary ${brandKit.colors.primary}, secondary ${brandKit.colors.secondary}, accent ${brandKit.colors.accent}, background ${brandKit.colors.background}, and text ${brandKit.colors.text}. Do not substitute generic Splay blue or an unrelated default palette.`,
+    `Typography direction: ${brandKit.typography.heading_family} ${brandKit.typography.heading_weight} for headings and ${brandKit.typography.body_family} ${brandKit.typography.body_weight} for supporting copy.`,
+    brandKit.name.trim().toLowerCase() === "splay"
+      ? referenceAssetPaths.length > 0
+        ? `Local style references available to the downstream Canva step: ${referenceAssetPaths.join(", ")}.`
+        : "No local SPLAY reference exports were found."
+      : `Do not use Splay reference exports for ${brandKit.name}; the saved brand kit is authoritative.`,
     "Avoid fake dashboards, robot imagery, icons, charts, literal paperwork, stock-photo hands, office scenes, beige templates, blue-purple AI gradients, neon cyan glow fields, and decorative clutter.",
-    "Vary spatial rhythm from other posts while preserving the same dark-blue palette and recognizable wave language."
+    `Vary spatial rhythm from other posts while preserving ${brandKit.name}'s palette and recognizable visual language.`
   ].join(" ");
 }
 
@@ -224,16 +242,17 @@ function creativeVisualInstructions(post: GeneratedPost, visual: VisualMetadata)
   ];
 }
 
-function buildAltText(post: GeneratedPost, visual: VisualMetadata): string {
-  return `Splay ${visual.density} ${visual.template_family.replace(/-/g, " ")} graphic about ${post.topic.toLowerCase()}.`;
+function buildAltText(post: GeneratedPost, visual: VisualMetadata, brandKit: BrandKit): string {
+  return `${brandKit.name} ${visual.density} ${visual.template_family.replace(/-/g, " ")} graphic about ${post.topic.toLowerCase()}.`;
 }
 
 async function createCuratedAssets(
   post: GeneratedPost,
   outputDir: string,
-  visual: VisualMetadata
+  visual: VisualMetadata,
+  brandKit: BrandKit
 ): Promise<ImageAssetResult> {
-  const rendered = await renderCuratedVisual(post, visual, outputDir);
+  const rendered = await renderCuratedVisual(post, visual, outputDir, null, brandKit);
   return {
     imageUrl: rendered.imageUrl,
     pngUrl: rendered.pngUrl,
@@ -253,7 +272,8 @@ async function createTokenMartCanvaAssets(
   post: GeneratedPost,
   prompt: string,
   outputDir: string,
-  visual: VisualMetadata
+  visual: VisualMetadata,
+  brandKit: BrandKit
 ): Promise<ImageAssetResult> {
   const notes: string[] = [];
   const candidateCount = getBackgroundCandidateCount();
@@ -262,7 +282,7 @@ async function createTokenMartCanvaAssets(
     for (let candidate = 1; candidate <= candidateCount; candidate += 1) {
       try {
         const backgroundImagePath = await createTokenMartBackgroundImage(post, prompt, outputDir, candidate);
-        const rendered = await renderCuratedVisual(post, visual, outputDir, backgroundImagePath);
+        const rendered = await renderCuratedVisual(post, visual, outputDir, backgroundImagePath, brandKit);
         return {
           imageUrl: rendered.imageUrl,
           pngUrl: rendered.pngUrl,
@@ -287,7 +307,7 @@ async function createTokenMartCanvaAssets(
     notes.push("Deterministic background used because TOKENMART_API_KEY is not set.");
   }
 
-  const rendered = await renderCuratedVisual(post, visual, outputDir);
+  const rendered = await renderCuratedVisual(post, visual, outputDir, null, brandKit);
   return {
     imageUrl: rendered.imageUrl,
     pngUrl: rendered.pngUrl,
@@ -320,7 +340,8 @@ function buildCanvaRequest(
   altText: string,
   imageAsset: ImageAssetResult,
   referenceAssetPaths: string[],
-  visual: VisualMetadata
+  visual: VisualMetadata,
+  brandKit: BrandKit
 ): CanvaImageRequest {
   const body = visual.brief.supporting_text || "Clear, trustworthy company context.";
   return {
@@ -334,10 +355,10 @@ function buildCanvaRequest(
       `Context summary for visual metaphor only: ${post.source_context.summary}`,
       referenceAssetPaths.length > 0
         ? `Use these local reference exports for visual style context when creating the Canva design: ${referenceAssetPaths.join(", ")}.`
-        : "No local SPLAY reference exports were found; follow the embedded Splay visual style guide exactly.",
+        : `No relevant local reference exports were found; follow the saved ${brandKit.name} brand kit exactly.`,
       imageAsset.backgroundImagePath
-        ? `Use the generated background plate at ${imageAsset.backgroundImagePath}; preserve the bundled official Splay SVG, bold sans headline, divider, and body copy as separate Canva layers.`
-        : "Use the curated background and preserve its bundled official Splay SVG, bold sans headline, divider, and body copy as separate Canva layers.",
+        ? `Use the generated background plate at ${imageAsset.backgroundImagePath}; preserve the ${brandKit.name} logo or monogram, headline, divider, and body copy as separate Canva layers.`
+        : `Use the curated background and preserve the ${brandKit.name} logo or monogram, headline, divider, and body copy as separate Canva layers.`,
       imageAsset.canvaImportHtml
         ? `A local Canva import prototype is available at ${imageAsset.canvaImportHtml}.`
         : "No Canva import HTML was generated for this request.",
@@ -348,12 +369,12 @@ function buildCanvaRequest(
       `Use an exact ${FINAL_IMAGE_WIDTH}x${FINAL_IMAGE_HEIGHT} 16:9 widescreen feed layout. Never use a portrait or square canvas. Keep the headline/support cluster compact and the bottom-quarter waves visually active.`,
       "Do not flatten text into the background image. Text must remain editable in Canva."
     ].join(" "),
-    visual_style: SPLAY_VISUAL_STYLE,
-    reference_asset_paths: referenceAssetPaths,
+    visual_style: brandVisualStyle(brandKit),
+    reference_asset_paths: brandKit.name.trim().toLowerCase() === "splay" ? referenceAssetPaths : [],
     background_image_path: imageAsset.backgroundImagePath,
     canva_import_html: imageAsset.canvaImportHtml,
     text_layers: {
-      wordmark: "Splay",
+      wordmark: brandKit.name,
       headline: toDisplayHeadline(visual.brief.headline),
       body
     },
@@ -368,8 +389,8 @@ function buildCanvaRequest(
 }
 
 function getBackgroundCandidateCount(): number {
-  const parsed = Number(process.env.TOKENMART_BACKGROUND_CANDIDATES ?? process.env.SOCIAL_AGENT_GPT_BACKGROUND_CANDIDATES ?? "2");
-  if (!Number.isFinite(parsed)) return 2;
+  const parsed = Number(process.env.TOKENMART_BACKGROUND_CANDIDATES ?? process.env.SOCIAL_AGENT_GPT_BACKGROUND_CANDIDATES ?? "1");
+  if (!Number.isFinite(parsed)) return 1;
   return Math.max(1, Math.min(5, Math.floor(parsed)));
 }
 

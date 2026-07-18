@@ -13,7 +13,7 @@ import {
   X as CloseIcon
 } from "lucide-react";
 import { mediaUrl, toDateTimeLocal } from "./api";
-import type { Decision, Filter, Health, Job, MediaType, Platform, ReviewReason, SplayPost, View } from "./types";
+import type { Decision, Filter, Job, MediaType, Platform, ReviewReason, SplayPost, View } from "./types";
 
 const navItems: Array<{ view: View; label: string; icon: ReactNode }> = [
   { view: "home", label: "New post", icon: <Plus /> },
@@ -25,16 +25,10 @@ const navItems: Array<{ view: View; label: string; icon: ReactNode }> = [
   { view: "settings", label: "Settings", icon: <SlidersHorizontal /> }
 ];
 
-export function Sidebar({ view, health, onNavigate }: {
+export function Sidebar({ view, onNavigate }: {
   view: View;
-  health: Health | null;
   onNavigate: (view: View) => void;
 }) {
-  const ready = Boolean(health?.ok);
-  const providers = health
-    ? `Buffer ${health.publishing.buffer_configured ? "ready" : "offline"} · Convex ${health.publishing.media_host_configured ? "ready" : "offline"}`
-    : "Connecting to local API";
-
   return (
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="brand-lockup">
@@ -56,10 +50,6 @@ export function Sidebar({ view, health, onNavigate }: {
           </button>
         ))}
       </nav>
-      <div className="connection-status" title={providers}>
-        <span className={ready ? "status-dot ready" : "status-dot"} />
-        <span className="sidebar-label">{ready ? `API ready · ${providers}` : providers}</span>
-      </div>
     </aside>
   );
 }

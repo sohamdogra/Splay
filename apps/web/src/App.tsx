@@ -24,13 +24,13 @@ import {
 import { Composer, FilterPills, JobStrip, PostCard, Sidebar } from "./components";
 import { CampaignsView } from "./CampaignsView";
 import { BrandKitView } from "./BrandKitView";
-import type { BrandKit, Campaign, CompanyContextItem, CreateCampaignInput, CreateCompanyContextInput, Decision, Filter, Health, Job, MediaType, Platform, ReviewReason, SplayPost, View } from "./types";
+import type { BrainImportPayload, BrandKit, Campaign, CompanyContextItem, CreateCampaignInput, CreateCompanyContextInput, Decision, Filter, Health, Job, MediaType, Platform, ReviewReason, SplayPost, View } from "./types";
 
 const POLL_INTERVAL_MS = 1_200;
 
 function humanizeError(error: unknown): string {
   if (error instanceof ApiError && error.status === 401) return "Enter your Splay API token in Settings to load private data.";
-  if (error instanceof TypeError) return "The Splay API is offline. Start it on port 4173, then try again.";
+  if (error instanceof TypeError) return "The Splay API is offline or unreachable. Check the configured API URL, then try again.";
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
@@ -110,7 +110,14 @@ export default function App() {
   const handleGenerate = async () => {
     setError("");
     try {
-      const job = await generatePosts(idea, creative, mediaType);
+      const selectedPlatforms = (Object.entries(platforms) as Array<[Platform, boolean]>)
+        .filter(([, selected]) => selected)
+        .map(([platform]) => platform);
+      if (selectedPlatforms.length === 0) {
+        setError("Choose LinkedIn, X, or both before generating.");
+        return;
+      }
+      const job = await generatePosts(idea, creative, mediaType, selectedPlatforms);
       setActiveJob(job);
       setIdea("");
     } catch (caught) {
@@ -161,6 +168,24 @@ export default function App() {
     setCompanyContext((current) => current.filter((item) => item.id !== id));
   };
 
+  const handleImportBrain = async (payload: BrainImportPayload) => {
+    const hydratedKit: BrandKit = {
+      ...payload.brand_kit,
+      version: brandKit?.version ?? 0,
+      updated_at: brandKit?.updated_at ?? new Date(0).toISOString()
+    };
+    const savedKit = await saveBrandKit(hydratedKit);
+    setBrandKitState(savedKit);
+
+    const imported: CompanyContextItem[] = [];
+    for (const context of payload.context) {
+      const item = await addCompanyContext(context);
+      imported.push(item);
+      setCompanyContext((current) => [item, ...current]);
+    }
+    return { brandKit: savedKit, imported };
+  };
+
   const saveToken = async () => {
     setApiToken(tokenDraft);
     setError("");
@@ -208,7 +233,7 @@ export default function App() {
       <div className="ray-fan" aria-hidden="true">
         <span /><span /><span /><span /><span />
       </div>
-      <Sidebar view={view} health={health} onNavigate={setView} />
+      <Sidebar view={view} onNavigate={setView} />
 
       <main className={`${hero ? "main-content hero" : "main-content"} view-${view}`}>
         {view === "home" && (
@@ -285,14 +310,14 @@ export default function App() {
           </section>
         )}
 
-        {view === "brand-kit" && <BrandKitView brandKit={brandKit} contextItems={companyContext} onSave={handleSaveBrandKit} onAddContext={handleAddCompanyContext} onRemoveContext={handleRemoveCompanyContext} />}
+        {view === "brand-kit" && <BrandKitView brandKit={brandKit} contextItems={companyContext} onSave={handleSaveBrandKit} onAddContext={handleAddCompanyContext} onRemoveContext={handleRemoveCompanyContext} onImportBrain={handleImportBrain} />}
 
         {view === "settings" && (
           <section>
             <div className="view-heading"><h1>Settings</h1></div>
             <div className="info-card settings-card">
               <h2>Connections</h2>
-              <ConnectionRow ready={Boolean(health?.ok)} name="Splay API" detail={health ? `http://127.0.0.1:4173 · v${health.version}` : "not connected"} />
+              <ConnectionRow ready={Boolean(health?.ok)} name="Splay API" detail={health ? `connected · v${health.version}` : "not connected"} />
               <ConnectionRow ready={Boolean(health?.publishing.buffer_configured)} name="Buffer" detail={health?.publishing.buffer_configured ? `configured · ${health.publishing.mode} mode` : "credentials not configured"} />
               <ConnectionRow ready={Boolean(health?.publishing.media_host_configured)} name="Convex media storage" detail={health?.publishing.media_host_configured ? "deployment linked · ingest token set" : "deployment or ingest token missing"} />
               {health?.authentication === "bearer" && (

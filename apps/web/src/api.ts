@@ -1,7 +1,7 @@
-import type { ApiEnvelope, BrandKit, Campaign, CompanyContextItem, CreateCampaignInput, CreateCompanyContextInput, Decision, Health, Job, MediaType, ReviewReason, SplayPost } from "./types";
+import type { ApiEnvelope, BrandKit, Campaign, CompanyContextItem, CreateCampaignInput, CreateCompanyContextInput, Decision, Health, Job, MediaType, Platform, ReviewReason, SplayPost } from "./types";
 
 const API_BASE = (import.meta.env.VITE_SPLAY_API_URL || "").replace(/\/$/, "");
-let runtimeToken = sessionStorage.getItem("splay_api_token") || import.meta.env.VITE_SPLAY_API_TOKEN || "";
+let runtimeToken = sessionStorage.getItem("splay_api_token") || "";
 
 export class ApiError extends Error {
   constructor(
@@ -114,11 +114,11 @@ export async function getJob(id: string): Promise<Job> {
   return response.data;
 }
 
-export async function generatePosts(topic: string, creative: boolean, media: MediaType = "image"): Promise<Job> {
+export async function generatePosts(topic: string, creative: boolean, media: MediaType = "image", platforms: Platform[] = ["linkedin", "x"]): Promise<Job> {
   const trimmed = topic.trim();
   const body = trimmed
-    ? { mode: "topic", topic: trimmed, creative, media }
-    : { mode: "auto", creative, media };
+    ? { mode: "topic", topic: trimmed, creative, media, platforms }
+    : { mode: "auto", creative, media, platforms };
   const response = await request<ApiEnvelope<Job>>("/api/v1/jobs/generate", {
     method: "POST",
     body: JSON.stringify(body)

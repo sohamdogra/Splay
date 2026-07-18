@@ -4,7 +4,8 @@ apps/*/dist/
 *.tsbuildinfo
 scripts/runtime/node_modules/
 .env
-.env.local
+.env.*
+!.env.example
 .gbrain-cache/
 .DS_Store
 output/

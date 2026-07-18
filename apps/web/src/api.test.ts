@@ -23,8 +23,18 @@ describe("Splay API client", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/jobs/generate", expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ mode: "topic", topic: "source-backed diligence", creative: true, media: "video" })
+      body: JSON.stringify({ mode: "topic", topic: "source-backed diligence", creative: true, media: "video", platforms: ["linkedin", "x"] })
     }));
+  });
+
+  it("sends only the selected generation platform", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({ data: { id: "job-1" } }, 202));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await generatePosts("retention signals", false, "image", ["linkedin"]);
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.body).toBe(JSON.stringify({ mode: "topic", topic: "retention signals", creative: false, media: "image", platforms: ["linkedin"] }));
   });
 
   it("sends bearer auth and backend-compatible review reasons", async () => {

@@ -101,7 +101,7 @@
       "get": {
         "summary": "Read service health and provider readiness",
         "security": [],
-        "responses": { "200": { "description": "Service health" } }
+        "responses": { "200": { "description": "Service health" }, "503": { "description": "Output storage is not writable" } }
       }
     },
     "/api/v1/openapi.json": {
@@ -236,7 +236,8 @@
                   "mode": { "type": "string", "enum": ["auto", "topic"], "default": "auto" },
                   "topic": { "type": "string", "maxLength": 500 },
                   "creative": { "type": "boolean", "default": false },
-                  "media": { "type": "string", "enum": ["image", "video"], "default": "image" }
+                  "media": { "type": "string", "enum": ["image", "video"], "default": "image" },
+                  "platforms": { "type": "array", "items": { "type": "string", "enum": ["linkedin", "x"] }, "minItems": 1, "uniqueItems": true, "default": ["linkedin", "x"] }
                 }
               }
             }
@@ -310,6 +311,7 @@
     "/media/{path}": {
       "get": {
         "summary": "Read a generated output asset",
+        "security": [],
         "parameters": [{ "name": "path", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": { "200": { "description": "Media asset" }, "404": { "description": "Not found" } }
       }

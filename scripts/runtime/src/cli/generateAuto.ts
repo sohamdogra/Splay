@@ -15,21 +15,30 @@ import { generateBackgroundAnimations } from "../agents/backgroundAnimationAgent
 loadEnv();
 
 export async function runGenerateAuto(media: "image" | "video" = readMediaArg()): Promise<PostPack> {
-  const brand = brandProfileFromKit(await loadBrandKit());
+  const startedAt = Date.now();
+  const brandKit = await loadBrandKit();
+  const brand = brandProfileFromKit(brandKit);
+  const platforms = readPlatformsArg();
   const brain = new CompanyBrainClient();
   const { ideas, themes } = await discoverTopicIdeas(brain, brand);
   if (ideas.length === 0) {
     throw new Error("The company brain has no public-safe context. Add context in Brand & brain before using auto generation.");
   }
 
+  const selectedIdeas = ideas.slice(0, maxAutoIdeas());
   const drafts: PostPack["posts"] = [];
-  for (const idea of ideas) {
+  const textStartedAt = Date.now();
+  for (const idea of selectedIdeas) {
     const generated = await generatePostsForIdea(idea, brand, {
-      recentPosts: drafts.map(postToRecentReference)
+      recentPosts: drafts.map(postToRecentReference),
+      platforms
     });
-    drafts.push(...generated);
+    drafts.push(...generated.map((post) => ({ ...post, brand_kit_version: brandKit.version })));
   }
-  const posts = await attachImages(drafts);
+  console.log(`[timing] text generation: ${((Date.now() - textStartedAt) / 1000).toFixed(1)}s`);
+  const imageStartedAt = Date.now();
+  const posts = await attachImages(drafts, undefined, brandKit);
+  console.log(`[timing] image generation and render: ${((Date.now() - imageStartedAt) / 1000).toFixed(1)}s`);
 
   let pack: PostPack = {
     generated_at: new Date().toISOString(),
@@ -47,7 +56,8 @@ export async function runGenerateAuto(media: "image" | "video" = readMediaArg())
     await savePostPack(pack);
   }
   const previewPath = await renderPreview(pack);
-  console.log(`Generated ${posts.length} ${media} drafts from ${ideas.length} ideas.`);
+  console.log(`Generated ${posts.length} ${media} drafts from ${selectedIdeas.length} idea${selectedIdeas.length === 1 ? "" : "s"}.`);
+  console.log(`[timing] total workflow: ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
   console.log(`Preview: ${previewPath}`);
   console.log(`Post pack: ${getOutputDir()}/post-pack.json`);
   return pack;
@@ -63,4 +73,18 @@ function readMediaArg(): "image" | "video" {
   const value = index === -1 ? "image" : process.argv[index + 1];
   if (value !== "image" && value !== "video") throw new Error("--media must be image or video.");
   return value;
+}
+
+function readPlatformsArg(): Array<"linkedin" | "x"> {
+  const index = process.argv.indexOf("--platforms");
+  if (index === -1) return ["linkedin", "x"];
+  const platforms = [...new Set((process.argv[index + 1] || "").split(",").map((value) => value.trim()).filter((value): value is "linkedin" | "x" => value === "linkedin" || value === "x"))];
+  if (platforms.length === 0) throw new Error("--platforms must contain linkedin, x, or both.");
+  return platforms;
+}
+
+function maxAutoIdeas(): number {
+  const parsed = Number(process.env.SOCIAL_AGENT_AUTO_IDEA_LIMIT ?? "1");
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.max(1, Math.min(5, Math.floor(parsed)));
 }

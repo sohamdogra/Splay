@@ -84,6 +84,7 @@ export class TokenMartMediaClient {
   async generateBackground(input: GenerateBackgroundInput): Promise<GeneratedBackground> {
     const model = input.model?.trim() || process.env.TOKENMART_IMAGE_MODEL?.trim() || DEFAULT_IMAGE_MODEL;
     const size = input.size?.trim() || process.env.TOKENMART_IMAGE_SIZE?.trim() || "1280x720";
+    const promptMode = process.env.TOKENMART_IMAGE_PROMPT_MODE?.trim() || "fast";
     const payload = await this.#requestJson("/v1/images/generations", {
       method: "POST",
       body: JSON.stringify({
@@ -92,7 +93,8 @@ export class TokenMartMediaClient {
         size,
         output_format: "png",
         response_format: "b64_json",
-        watermark: false
+        watermark: false,
+        ...(promptMode === "standard" ? {} : { optimize_prompt_options: { mode: "fast" } })
       })
     });
 

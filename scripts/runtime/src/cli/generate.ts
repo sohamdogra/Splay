@@ -20,13 +20,21 @@ if (!topic) {
   process.exit(1);
 }
 
-const brand = brandProfileFromKit(await loadBrandKit());
+const startedAt = Date.now();
+const brandKit = await loadBrandKit();
+const brand = brandProfileFromKit(brandKit);
+const platforms = readPlatformsArg();
 const brain = new CompanyBrainClient();
 const request = parseManualPostRequest(topic);
 const contexts = await brain.searchCompanyContext(`${request.topic} ${request.brief}`);
 const idea = await buildTopicFromManualInput(topic, contexts, brand);
-const drafts = await generatePostsForIdea(idea, brand);
-const posts = await attachImages(drafts);
+const textStartedAt = Date.now();
+const drafts = (await generatePostsForIdea(idea, brand, { platforms }))
+  .map((post) => ({ ...post, brand_kit_version: brandKit.version }));
+console.log(`[timing] text generation: ${elapsedSeconds(textStartedAt)}s`);
+const imageStartedAt = Date.now();
+const posts = await attachImages(drafts, undefined, brandKit);
+console.log(`[timing] image generation and render: ${elapsedSeconds(imageStartedAt)}s`);
 
 let pack: PostPack = {
   generated_at: new Date().toISOString(),
@@ -45,6 +53,7 @@ if (media === "video") {
 }
 const previewPath = await renderPreview(pack);
 console.log(`Generated ${posts.length} ${media} drafts for "${idea.topic}".`);
+console.log(`[timing] total workflow: ${elapsedSeconds(startedAt)}s`);
 console.log(`Preview: ${previewPath}`);
 
 function readArg(name: string): string | undefined {
@@ -57,4 +66,16 @@ function readMediaArg(): "image" | "video" {
   const value = readArg("--media") || "image";
   if (value !== "image" && value !== "video") throw new Error("--media must be image or video.");
   return value;
+}
+
+function readPlatformsArg(): Array<"linkedin" | "x"> {
+  const raw = readArg("--platforms");
+  if (!raw) return ["linkedin", "x"];
+  const platforms = [...new Set(raw.split(",").map((value) => value.trim()).filter((value): value is "linkedin" | "x" => value === "linkedin" || value === "x"))];
+  if (platforms.length === 0) throw new Error("--platforms must contain linkedin, x, or both.");
+  return platforms;
+}
+
+function elapsedSeconds(startedAt: number): string {
+  return ((Date.now() - startedAt) / 1000).toFixed(1);
 }

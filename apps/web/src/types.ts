@@ -110,6 +110,8 @@ export interface BrandKit {
   logo_url: string | null;
 }
 
+export type BrandKitInput = Omit<BrandKit, "version" | "updated_at">;
+
 export interface CompanyContextItem {
   id: string;
   title: string;
@@ -127,6 +129,12 @@ export type CreateCompanyContextInput = Pick<CompanyContextItem, "title" | "kind
   source?: string;
   date?: string;
 };
+
+export interface BrainImportPayload {
+  schema_version: "splay-brain-import/v1";
+  brand_kit: BrandKitInput;
+  context: CreateCompanyContextInput[];
+}
 
 export type CreateCampaignInput = Pick<Campaign, "name" | "brief" | "themes" | "platforms" | "start_at" | "timezone" | "interval_weeks" | "occurrences" | "creative">;
 
@@ -152,6 +160,11 @@ export interface Health {
     media_host: string;
     media_host_configured: boolean;
     mode: string;
+  };
+  storage?: {
+    product_data: "filesystem";
+    output_writable: boolean;
+    active_jobs: "memory";
   };
 }
 

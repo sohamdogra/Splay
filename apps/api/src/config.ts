@@ -21,7 +21,7 @@ export type ApiConfig = {
 
 export const apiConfig: ApiConfig = {
   host: process.env.API_HOST?.trim() || "127.0.0.1",
-  port: positiveInteger(process.env.API_PORT, 4173),
+  port: positiveInteger(process.env.PORT || process.env.API_PORT, 4173),
   allowedOrigins: new Set(csv(process.env.API_ALLOWED_ORIGINS || [
     "http://localhost:3000",
     "http://127.0.0.1:3000",

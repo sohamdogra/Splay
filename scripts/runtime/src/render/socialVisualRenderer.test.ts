@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import type { GeneratedPost, VisualMetadata, VisualTemplateFamily } from "../types/index.ts";
+import type { BrandKit, GeneratedPost, VisualMetadata, VisualTemplateFamily } from "../types/index.ts";
 import { buildTemplateSceneForTest, lockVisualToImageCopy, renderCuratedVisual } from "./socialVisualRenderer.ts";
 
 const families: VisualTemplateFamily[] = [
@@ -191,6 +191,40 @@ test("fits the source-evidence-card headline without truncation", async () => {
     assert.equal(result.qa.ok, true);
     assert.doesNotMatch(svg, /survive every\u2026|survive every[.]{3}/);
     assert.match(svg, /handoff/);
+  } finally {
+    await rm(outputDir, { recursive: true, force: true });
+  }
+});
+
+test("renders a non-Splay brand with its saved palette, wordmark, and typography", async () => {
+  const outputDir = await mkdtemp(path.join(os.tmpdir(), "custom-brand-render-"));
+  await Promise.all(["images", "canva-imports"].map((dir) => mkdir(path.join(outputDir, dir), { recursive: true })));
+  const brandKit: BrandKit = {
+    version: 3,
+    updated_at: "2026-07-18T21:58:26.611Z",
+    name: "Churnary",
+    tagline: "AI retention for local business",
+    audience: "local business owners",
+    tone: "warm and plainspoken",
+    positioning: "Practical customer retention.",
+    avoid: ["AI hype"],
+    colors: { primary: "#B4532A", secondary: "#3B2A20", accent: "#73E2C5", background: "#F0E7D8", text: "#2A211C" },
+    typography: { heading_family: "Spectral", body_family: "Hanken Grotesk", heading_weight: 700, body_weight: 400, scale: "balanced" },
+    logo_url: null
+  };
+
+  try {
+    const result = await renderCuratedVisual(makePost(), metadata("dark-editorial-thesis"), outputDir, null, brandKit);
+    const svg = await readFile(path.join(outputDir, result.svgUrl), "utf8");
+    assert.equal(result.qa.ok, true);
+    assert.match(svg, /Churnary/);
+    assert.match(svg, /#B4532A/i);
+    assert.match(svg, /#3B2A20/i);
+    assert.match(svg, /#73E2C5/i);
+    assert.doesNotMatch(svg, />Splay</);
+    assert.equal(result.renderContract.signature.wordmark, "Churnary");
+    assert.equal(result.renderContract.signature.font_family, "Hanken Grotesk");
+    assert.equal(result.renderContract.text_layers.find((layer) => layer.role === "headline")?.font_family, "Spectral");
   } finally {
     await rm(outputDir, { recursive: true, force: true });
   }

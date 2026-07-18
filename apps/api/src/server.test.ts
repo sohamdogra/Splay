@@ -48,6 +48,9 @@ test("exposes health, posts, and frontend media URLs", async () => {
   assert.equal(healthBody.generation.media.configured, false);
   assert.equal(healthBody.generation.media.image_model, "dola-seedream-5-0-pro-260628");
   assert.equal(healthBody.generation.media.video_model, "dreamina-seedance-2-0-260128");
+  assert.equal(healthBody.storage.product_data, "filesystem");
+  assert.equal(healthBody.storage.output_writable, true);
+  assert.equal(healthBody.storage.active_jobs, "memory");
 
   const response = await fetch(`${baseUrl}/api/v1/posts?platform=linkedin&status=draft`, {
     headers: { authorization: "Bearer test-token" }
@@ -58,15 +61,11 @@ test("exposes health, posts, and frontend media URLs", async () => {
   assert.equal(body.data[0].media_url, "/media/images/post-1.png");
   assert.equal(body.data[0].animation_media_url, "/media/videos/post-1-background.mp4");
 
-  const media = await fetch(`${baseUrl}${body.data[0].media_url}`, {
-    headers: { authorization: "Bearer test-token" }
-  });
+  const media = await fetch(`${baseUrl}${body.data[0].media_url}`);
   assert.equal(media.status, 200);
   assert.equal(await media.text(), "png fixture");
 
-  const animation = await fetch(`${baseUrl}${body.data[0].animation_media_url}`, {
-    headers: { authorization: "Bearer test-token" }
-  });
+  const animation = await fetch(`${baseUrl}${body.data[0].animation_media_url}`);
   assert.equal(animation.status, 200);
   assert.equal(animation.headers.get("content-type"), "video/mp4");
   assert.equal(await animation.text(), "mp4 fixture");

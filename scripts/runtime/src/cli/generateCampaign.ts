@@ -44,7 +44,8 @@ try {
     const contexts = await brain.searchCompanyContext(topic);
     const idea = await buildTopicFromManualInput(topic, contexts, brand);
     const drafts = await generatePostsForIdea(idea, brand, {
-      recentPosts: [...existing, ...generated].map(postToRecentReference)
+      recentPosts: [...existing, ...generated].map(postToRecentReference),
+      platforms: campaign.platforms
     });
     generated.push(...drafts
       .filter((post) => campaign.platforms.includes(post.platform))
@@ -57,7 +58,7 @@ try {
       })));
   }
 
-  const posts = await attachImages(generated);
+  const posts = await attachImages(generated, undefined, brandKit);
   const nextPack = {
     ...pack,
     brand,
