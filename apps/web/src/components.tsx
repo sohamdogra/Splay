@@ -422,7 +422,7 @@ export function FilterPills({ filter, counts, onChange }: {
   counts: Record<Filter, number>;
   onChange: (filter: Filter) => void;
 }) {
-  const filters: Array<[Filter, string]> = [["all", "All"], ["draft", "Drafts"], ["approved", "Approved"], ["staged", "Staged"]];
+  const filters: Array<[Filter, string]> = [["all", "All"], ["draft", "Drafts"], ["approved", "Approved"], ["staged", "Staged"], ["posted", "Posted"]];
   return (
     <div className="filter-pills" aria-label="Filter posts">
       {filters.map(([key, label]) => (

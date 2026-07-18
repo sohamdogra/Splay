@@ -175,12 +175,13 @@ export default function App() {
     }
   };
 
-  const reviewPosts = useMemo(() => posts.filter((post) => ["draft", "approved", "staged"].includes(post.status)), [posts]);
+  const reviewPosts = useMemo(() => posts.filter((post) => ["draft", "approved", "staged", "posted"].includes(post.status)), [posts]);
   const counts = useMemo<Record<Filter, number>>(() => ({
     all: reviewPosts.length,
     draft: reviewPosts.filter((post) => post.status === "draft").length,
     approved: reviewPosts.filter((post) => post.status === "approved").length,
-    staged: reviewPosts.filter((post) => post.status === "staged").length
+    staged: reviewPosts.filter((post) => post.status === "staged").length,
+    posted: reviewPosts.filter((post) => post.status === "posted").length
   }), [reviewPosts]);
   const homePosts = posts.filter((post) => platforms[post.platform]);
   const queuePosts = filter === "all" ? reviewPosts : reviewPosts.filter((post) => post.status === filter);

@@ -74,8 +74,13 @@ describe("Splay frontend", () => {
     render(<App />);
     await user.click(await screen.findByRole("button", { name: "Review queue" }));
     expect(await screen.findByText("Deal context should survive the close.")).toBeInTheDocument();
-    expect(screen.queryByText("This post has already been published.")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "All · 1" })).toBeInTheDocument();
+    expect(screen.getByText("This post has already been published.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All · 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Posted · 1" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Posted · 1" }));
+    expect(screen.getByText("This post has already been published.")).toBeInTheDocument();
+    expect(screen.queryByText("Deal context should survive the close.")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "All · 2" }));
     await user.click(screen.getByRole("button", { name: "Approve" }));
 
     await waitFor(() => expect(screen.getByText("Approved")).toBeInTheDocument());
