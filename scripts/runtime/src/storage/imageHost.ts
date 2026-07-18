@@ -1,69 +1,51 @@
-import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { ConvexHttpClient } from "convex/browser";
+import { anyApi } from "convex/server";
 import { getOutputDir } from "../config/runtimeMode.ts";
 import type { GeneratedPost } from "../types/index.ts";
 import { FINAL_IMAGE_HEIGHT, FINAL_IMAGE_WIDTH } from "../visual/finalImageContract.ts";
 
-// Hosts the local image for a post on Cloudflare R2 (or any S3-compatible store) and
-// returns the post with `image_url` rewritten to a URL Buffer can fetch.
+// Hosts the local image for a post in Convex File Storage and returns the post with
+// `image_url` rewritten to a public URL Buffer can fetch.
 //
 // Buffer requires a public https URL and rejects SVG. Current generated packs upload the
 // QA-passed local PNG directly; legacy .svg packs are rasterized through headless Chromium.
 //
-// Buffer fetches media when a queued post actually publishes (potentially days later),
-// so the URL must stay valid until then. We therefore REQUIRE a stable, permanent public
-// base URL (R2_PUBLIC_BASE_URL, e.g. the bucket's pub-*.r2.dev domain or a custom domain)
-// and let an R2 lifecycle rule expire old objects. Presigned URLs expire and are
-// unsuitable for queued posts, so hosting is treated as unconfigured without a public base
-// URL — callers then fail closed rather than emitting a URL that dies before publish.
+// Buffer fetches media when a queued post actually publishes (potentially days later).
+// Convex storage.getUrl() returns a bearer URL that remains publicly fetchable until the
+// stored file is deleted, so it is suitable for Buffer's delayed fetch model.
 
-type R2Config = {
-  endpoint: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  bucket: string;
-  publicBaseUrl: string;
+type ConvexStorageConfig = {
+  url: string;
+  ingestToken: string;
 };
 
 export type HostedImage = {
   post: GeneratedPost;
-  // Object key in the bucket (e.g. for diagnostics / lifecycle reasoning).
-  hostedKey?: string;
+  storageId?: string;
 };
 
-let cachedClient: S3Client | null = null;
+type ConvexMutationClient = {
+  mutation(reference: unknown, args: Record<string, unknown>): Promise<unknown>;
+};
 
-function readConfig(): R2Config | null {
-  const endpoint = process.env.R2_ENDPOINT?.trim();
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
-  const bucket = process.env.R2_BUCKET?.trim();
-  // A permanent public base URL is mandatory: without it we cannot guarantee the media
-  // stays reachable until a queued post publishes.
-  const publicBaseUrl = process.env.R2_PUBLIC_BASE_URL?.trim();
-  if (!endpoint || !accessKeyId || !secretAccessKey || !bucket || !publicBaseUrl) return null;
+export type HostImageOptions = {
+  client?: ConvexMutationClient;
+  fetch?: typeof fetch;
+};
 
-  return { endpoint, accessKeyId, secretAccessKey, bucket, publicBaseUrl };
+function readConfig(): ConvexStorageConfig | null {
+  const url = process.env.CONVEX_URL?.trim();
+  const ingestToken = process.env.CONVEX_INGEST_TOKEN?.trim();
+  if (!url || !ingestToken) return null;
+
+  return { url, ingestToken };
 }
 
 export function isImageHostConfigured(): boolean {
   return readConfig() !== null;
-}
-
-function getClient(config: R2Config): S3Client {
-  if (cachedClient) return cachedClient;
-  cachedClient = new S3Client({
-    region: "auto",
-    endpoint: config.endpoint,
-    credentials: {
-      accessKeyId: config.accessKeyId,
-      secretAccessKey: config.secretAccessKey
-    }
-  });
-  return cachedClient;
 }
 
 function isExternalUrl(value: string): boolean {
@@ -126,13 +108,9 @@ function contentTypeFor(ext: string): string {
   }
 }
 
-function buildUrl(config: R2Config, key: string): string {
-  return `${config.publicBaseUrl.replace(/\/$/, "")}/${key}`;
-}
-
-// Upload the post's local image to R2 and return the post with image_url pointing at a
-// fetchable URL. Posts that already carry an external URL, or have no image, pass through.
-export async function hostImageIfLocal(post: GeneratedPost): Promise<HostedImage> {
+// Upload the post's local image to Convex and return the post with image_url pointing at
+// the URL from storage.getUrl(). Posts with an external URL, or no image, pass through.
+export async function hostImageIfLocal(post: GeneratedPost, options: HostImageOptions = {}): Promise<HostedImage> {
   const config = readConfig();
   if (!config) return { post };
   if (!post.image_url || isExternalUrl(post.image_url)) return { post };
@@ -141,26 +119,57 @@ export async function hostImageIfLocal(post: GeneratedPost): Promise<HostedImage
   const sourceExt = path.extname(absPath).toLowerCase();
 
   let body: Buffer;
-  let key: string;
+  let sourceName: string;
   let contentType: string;
   if (sourceExt === ".svg") {
     body = await rasterizeSvgToPng(absPath);
-    key = `posts/${randomUUID()}.png`;
+    sourceName = `${path.basename(absPath, sourceExt)}.png`;
     contentType = "image/png";
   } else {
     body = await readFile(absPath);
-    key = `posts/${randomUUID()}${sourceExt}`;
+    sourceName = path.basename(absPath);
     contentType = contentTypeFor(sourceExt);
   }
 
-  const client = getClient(config);
-  await client.send(new PutObjectCommand({
-    Bucket: config.bucket,
-    Key: key,
-    Body: body,
-    ContentType: contentType
-  }));
+  if (!contentType.startsWith("image/")) throw new Error(`Unsupported media type for Convex upload: ${sourceExt || "unknown"}.`);
 
-  const url = buildUrl(config, key);
-  return { post: { ...post, image_url: url }, hostedKey: key };
+  const client = options.client ?? new ConvexHttpClient(config.url);
+  const uploadUrl = await client.mutation(anyApi.media.generateUploadUrl, {
+    ingestToken: config.ingestToken
+  });
+  if (typeof uploadUrl !== "string" || !/^https?:\/\//i.test(uploadUrl)) {
+    throw new Error("Convex did not return a valid upload URL.");
+  }
+
+  const fetchImpl = options.fetch ?? fetch;
+  const uploadResponse = await fetchImpl(uploadUrl, {
+    method: "POST",
+    headers: { "content-type": contentType },
+    body: new Uint8Array(body)
+  });
+  if (!uploadResponse.ok) {
+    const detail = (await uploadResponse.text()).trim().slice(0, 500);
+    throw new Error(`Convex upload failed (${uploadResponse.status})${detail ? `: ${detail}` : "."}`);
+  }
+
+  const uploadResult = await uploadResponse.json() as { storageId?: unknown };
+  if (typeof uploadResult.storageId !== "string" || !uploadResult.storageId) {
+    throw new Error("Convex upload response did not include a storageId.");
+  }
+
+  const finalized = await client.mutation(anyApi.media.finalizeUpload, {
+    ingestToken: config.ingestToken,
+    storageId: uploadResult.storageId,
+    postId: post.id,
+    contentType,
+    sourceName
+  }) as { storageId?: unknown; url?: unknown };
+  if (typeof finalized.url !== "string" || !/^https:\/\//i.test(finalized.url)) {
+    throw new Error("Convex did not return a public HTTPS media URL.");
+  }
+
+  return {
+    post: { ...post, image_url: finalized.url },
+    storageId: typeof finalized.storageId === "string" ? finalized.storageId : uploadResult.storageId
+  };
 }

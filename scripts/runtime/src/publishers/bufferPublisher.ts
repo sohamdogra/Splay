@@ -268,7 +268,7 @@ export class BufferPublisher implements Publisher {
         ...(schedule.dueAt ? { dueAt: schedule.dueAt } : {}),
         assets,
         ...(metadata ? { metadata } : {}),
-        source: "gbrain-social-agent",
+        source: "splay",
         aiAssisted: true,
         saveToDraft: false
       }
@@ -338,7 +338,7 @@ export class BufferPublisher implements Publisher {
         dueAt,
         assets,
         ...(metadata ? { metadata } : {}),
-        source: "gbrain-social-agent",
+        source: "splay",
         aiAssisted: true,
         saveToDraft: false
       }

@@ -7,13 +7,7 @@ import type { GeneratedPost, PublishResult } from "../types/index.ts";
 import type { Publisher } from "./Publisher.ts";
 import { publishWithHosting } from "./publishWithHosting.ts";
 
-const R2_KEYS = [
-  "R2_ENDPOINT",
-  "R2_ACCESS_KEY_ID",
-  "R2_SECRET_ACCESS_KEY",
-  "R2_BUCKET",
-  "R2_PUBLIC_BASE_URL"
-];
+const CONVEX_KEYS = ["CONVEX_URL", "CONVEX_INGEST_TOKEN"];
 
 class FakePublisher implements Publisher {
   public readonly calls: GeneratedPost[] = [];
@@ -49,7 +43,7 @@ after(() => {
 
 // Ensure hosting reads as unconfigured unless a test opts in.
 beforeEach(() => {
-  for (const key of R2_KEYS) delete process.env[key];
+  for (const key of CONVEX_KEYS) delete process.env[key];
 });
 
 test("publishes a text-only post as-is", async () => {

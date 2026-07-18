@@ -5,11 +5,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-const outputDir = await mkdtemp(path.join(tmpdir(), "arvya-app-api-"));
+const outputDir = await mkdtemp(path.join(tmpdir(), "splay-api-"));
 process.env.SOCIAL_AGENT_OUTPUT_DIR = outputDir;
 process.env.SOCIAL_AGENT_TEST_MODE = "0";
 process.env.DATABASE_URL = "";
-process.env.ARVYA_API_TOKEN = "test-token";
+process.env.SPLAY_API_TOKEN = "test-token";
 
 const { createApiServer } = await import("./server.ts");
 

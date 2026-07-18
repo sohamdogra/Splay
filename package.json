@@ -1,9 +1,9 @@
 {
-  "name": "arvya-social-agent",
+  "name": "splay",
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Frontend-ready Arvya social content application backend.",
+  "description": "Frontend-ready Splay social content application backend.",
   "scripts": {
     "dev": "node --experimental-strip-types --watch apps/api/src/server.ts",
     "start": "node --experimental-strip-types apps/api/src/server.ts",
@@ -23,16 +23,28 @@
     "metrics:score": "node --experimental-strip-types scripts/runtime/src/cli/metricsScore.ts",
     "feedback:generate": "node --experimental-strip-types scripts/runtime/src/cli/feedbackGenerate.ts",
     "feedback:print": "node --experimental-strip-types scripts/runtime/src/cli/feedbackPrint.ts",
+    "convex:dev": "convex dev",
+    "convex:codegen": "convex codegen",
+    "convex:deploy": "convex deploy",
+    "convex:env": "convex env",
     "test:api": "node --experimental-strip-types --test apps/api/src/server.test.ts",
     "test:core": "npm --prefix scripts/runtime test",
     "test": "npm run test:api && npm run test:core",
     "check:api": "node --experimental-strip-types --check apps/api/src/server.ts && node --experimental-strip-types --check apps/api/src/jobs.ts",
     "check:core": "npm --prefix scripts/runtime run check",
-    "check": "npm run check:api && npm run check:core",
+    "check:convex": "convex typecheck",
+    "check": "npm run check:api && npm run check:core && npm run check:convex",
     "db:generate": "npm --prefix scripts/runtime run db:generate",
     "db:migrate": "npm --prefix scripts/runtime run db:migrate"
   },
   "engines": {
     "node": ">=22.6"
+  },
+  "dependencies": {
+    "convex": "^1.42.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.9.3"
   }
 }

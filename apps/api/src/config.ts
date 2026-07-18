@@ -6,6 +6,7 @@ import { loadEnv } from "../../../scripts/runtime/src/config/loadEnv.ts";
 export const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 export const CORE_ROOT = path.join(PROJECT_ROOT, "scripts", "runtime");
 
+loadEnv(path.join(PROJECT_ROOT, ".env.local"));
 loadEnv(path.join(PROJECT_ROOT, ".env"));
 
 setDefault("SOCIAL_AGENT_OUTPUT_DIR", path.join(PROJECT_ROOT, "output"));
@@ -37,14 +38,14 @@ export const apiConfig: ApiConfig = {
     "http://localhost:5173",
     "http://127.0.0.1:5173"
   ].join(","))),
-  apiToken: process.env.ARVYA_API_TOKEN?.trim() || undefined,
+  apiToken: process.env.SPLAY_API_TOKEN?.trim() || undefined,
   bodyLimitBytes: positiveInteger(process.env.API_BODY_LIMIT_BYTES, 2 * 1024 * 1024)
 };
 
 export function assertSafeApiConfig(config = apiConfig): void {
   const isLoopback = ["127.0.0.1", "localhost", "::1"].includes(config.host);
   if (!isLoopback && !config.apiToken) {
-    throw new Error("ARVYA_API_TOKEN is required when API_HOST is not a loopback address.");
+    throw new Error("SPLAY_API_TOKEN is required when API_HOST is not a loopback address.");
   }
 }
 
@@ -54,16 +55,11 @@ export function publicRuntimeConfig(): Record<string, unknown> {
     || process.env.BUFFER_X_PROFILE_IDS
     || process.env.BUFFER_PROFILE_IDS
   );
-  const r2Configured = [
-    "R2_ENDPOINT",
-    "R2_ACCESS_KEY_ID",
-    "R2_SECRET_ACCESS_KEY",
-    "R2_BUCKET",
-    "R2_PUBLIC_BASE_URL"
-  ].every((key) => Boolean(process.env[key]));
+  const convexStorageConfigured = ["CONVEX_URL", "CONVEX_INGEST_TOKEN"]
+    .every((key) => Boolean(process.env[key]));
 
   return {
-    service: "arvya-social-agent-api",
+    service: "splay-api",
     version: "0.2.0",
     test_mode: process.env.SOCIAL_AGENT_TEST_MODE === "1",
     authentication: apiConfig.apiToken ? "bearer" : "local-only",
@@ -82,7 +78,8 @@ export function publicRuntimeConfig(): Record<string, unknown> {
     },
     publishing: {
       buffer_configured: Boolean(process.env.BUFFER_API_KEY && bufferProfiles),
-      media_host_configured: r2Configured,
+      media_host: "convex",
+      media_host_configured: convexStorageConfigured,
       mode: process.env.BUFFER_PUBLISH_MODE || "queue"
     }
   };

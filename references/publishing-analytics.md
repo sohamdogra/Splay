@@ -1,16 +1,13 @@
 # Publishing And Analytics Reference
 
-## R2 Image Hosting
+## Convex Image Hosting
 
-Buffer requires a public HTTPS image URL and rejects local files. The runtime uploads local PNG/SVG media to R2 before Buffer publishing when these are all set:
+Buffer requires a public HTTPS image URL and rejects local files. The runtime uploads local PNG/SVG media to Convex File Storage before Buffer publishing when these are set:
 
-- `R2_ENDPOINT`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET`
-- `R2_PUBLIC_BASE_URL`
+- `CONVEX_URL`
+- `CONVEX_INGEST_TOKEN`
 
-`R2_PUBLIC_BASE_URL` must be a permanent public bucket/custom-domain URL, not a presigned URL. The runtime fails closed if hosting is missing for image posts outside test mode.
+The runtime calls the protected `media:generateUploadUrl` mutation, POSTs the image to the returned one-hour upload URL, then calls `media:finalizeUpload`. Finalization persists the storage ID and returns `storage.getUrl()`. Anyone with that URL can fetch the file until it is deleted, which is required for Buffer's delayed media fetch. The runtime fails closed if Convex storage is missing or does not return a public HTTPS URL.
 
 ## Buffer
 
@@ -56,7 +53,7 @@ Use the in-place replacement command when a QA-passed local PNG must replace the
 npm run replace-scheduled-images -- --map /path/to/replacement-map.json
 ```
 
-The command requires the local post to remain `staged`, retain a future `scheduled_for`, point to an exact 1200x675 PNG, and carry a matching passing visual-QA report. It uploads the PNG to R2, verifies Buffer still has the same scheduled text and due time, calls `editPost` with the replacement asset, verifies the returned post ID/status/time/media, and appends an audited `replace-scheduled-image` event to `publish-log.jsonl`.
+The command requires the local post to remain `staged`, retain a future `scheduled_for`, point to an exact 1200x675 PNG, and carry a matching passing visual-QA report. It uploads the PNG to Convex, verifies Buffer still has the same scheduled text and due time, calls `editPost` with the replacement asset, verifies the returned post ID/status/time/media, and appends an audited `replace-scheduled-image` event to `publish-log.jsonl`.
 
 ## Database
 

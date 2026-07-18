@@ -50,7 +50,7 @@ export async function publishWithHosting(publisher: Publisher, post: GeneratedPo
   }
 
   if (!isImageHostConfigured()) {
-    return failClosed(post, "Image hosting is not configured (set R2_* env vars). Refusing to publish an image post as text-only.");
+    return failClosed(post, "Image hosting is not configured (set CONVEX_URL and CONVEX_INGEST_TOKEN). Refusing to publish an image post as text-only.");
   }
 
   let hostedPost: GeneratedPost;

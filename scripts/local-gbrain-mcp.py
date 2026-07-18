@@ -188,7 +188,7 @@ TOOLS = [
     },
     {
         "name": "search",
-        "description": "Alias for query for compatibility with the social-agent runtime.",
+        "description": "Alias for query for compatibility with the Splay runtime.",
         "inputSchema": {
             "type": "object",
             "properties": {"query": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 20}},

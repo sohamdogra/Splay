@@ -29,6 +29,15 @@ Final publishing artwork follows the fixed 1200x675 (16:9) dark-blue wave contra
 - `SOCIAL_AGENT_TEST_MODE=1`: use `output/test`, disable DB/external publishing, and allow mock publisher.
 - `scheduled_for` on a post: optional exact Buffer schedule time, set via imported drafts or `schedule --time <ISO>`.
 
+## Convex Media Storage
+
+- `CONVEX_URL`: deployment URL used by the server-side Convex client. `convex dev` writes this to `.env.local`.
+- `CONVEX_INGEST_TOKEN`: high-entropy shared secret used only for the runtime-to-Convex upload mutations. Set the same value locally and in the Convex deployment environment; never send it to a browser.
+- `CONVEX_DEPLOYMENT`: development deployment selector managed by the Convex CLI.
+- `CONVEX_DEPLOY_KEY`: optional CI/production deployment credential; never expose it to a frontend.
+
+Local images are uploaded through a one-time Convex upload URL. Buffer receives only the public HTTPS URL returned by `storage.getUrl()`.
+
 ## Brand
 
 - `BRAND_NAME`, `BRAND_AUDIENCE`, `BRAND_TONE`: optional brand profile overrides.

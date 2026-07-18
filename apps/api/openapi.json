@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Arvya Social Agent API",
+    "title": "Splay API",
     "version": "0.2.0",
     "description": "Local-first application API for generation, review, scheduling, publishing, metrics, and frontend media access."
   },

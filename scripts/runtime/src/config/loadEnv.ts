@@ -1,6 +1,15 @@
 import { existsSync, readFileSync } from "node:fs";
 
 export function loadEnv(filePath = ".env"): void {
+  if (filePath === ".env") {
+    loadEnvFile(".env.local");
+    loadEnvFile(".env");
+    return;
+  }
+  loadEnvFile(filePath);
+}
+
+function loadEnvFile(filePath: string): void {
   if (!existsSync(filePath)) return;
 
   const lines = readFileSync(filePath, "utf8").split(/\r?\n/);

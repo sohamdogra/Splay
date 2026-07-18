@@ -1,4 +1,4 @@
-# Arvya Social Agent
+# Splay
 
 Frontend-ready application backend for generating, reviewing, visually validating, scheduling, publishing, and learning from Arvya LinkedIn/X posts.
 
@@ -8,7 +8,7 @@ This repository no longer depends on being installed or invoked as a Codex skill
 
 - A versioned API now exposes posts, media, review decisions, scheduling, generation jobs, publishing jobs, metrics, and feedback operations.
 - Long-running and output-mutating jobs are serialized so a frontend cannot accidentally run conflicting generations or publishes.
-- Publishing is fail-closed: it requires an explicit confirmation plus valid Buffer and, when needed, R2 configuration.
+- Publishing is fail-closed: it requires an explicit confirmation plus valid Buffer and Convex storage configuration.
 - Local-only networking, origin allowlisting, optional bearer authentication, bounded request bodies, and safe media paths are built in.
 - The existing post-pack schema, editorial gates, deterministic compositor, visual QA, Buffer integration, database schema, and tests remain intact.
 
@@ -18,15 +18,39 @@ See [the application architecture](docs/app-architecture.md) and [the OpenAPI co
 
 - Node.js 22.6 or newer
 - PostgreSQL only when database-backed metrics and feedback are needed
-- Buffer and Cloudflare R2 credentials only for live publishing
+- A Convex deployment for durable public media URLs used by Buffer
+- Buffer credentials only for live publishing
 
-Install the existing core dependencies:
+Install the application/Convex tooling and the existing core dependencies:
 
 ```sh
+npm install
 npm --prefix scripts/runtime install
 ```
 
-The root application uses Node's built-in HTTP server and has no additional production dependencies.
+The API uses Node's built-in HTTP server. The root Convex dependency serves the backend functions and the service-to-service upload client.
+
+## Configure Convex storage
+
+Start or connect a Convex development deployment:
+
+```sh
+npm run convex:dev
+```
+
+Convex writes `CONVEX_URL` and `CONVEX_DEPLOYMENT` to `.env.local`. Generate a high-entropy `CONVEX_INGEST_TOKEN`, put it in `.env.local` (or `.env`), and set the same value on the Convex deployment:
+
+```sh
+npm run convex:env -- set CONVEX_INGEST_TOKEN
+```
+
+The ingest token protects the two service-to-service mutations that issue upload URLs and finalize media. Deploy production functions with:
+
+```sh
+npm run convex:deploy
+```
+
+Convex returns a public bearer URL from `storage.getUrl()`. Buffer receives that URL, and it remains fetchable until the underlying Convex file is deleted. Do not delete scheduled-post media before Buffer has published it.
 
 ## Run the API
 
@@ -91,11 +115,11 @@ curl -X POST http://127.0.0.1:4173/api/v1/jobs/publish-approved \
   -d '{"confirm":true}'
 ```
 
-If `ARVYA_API_TOKEN` is configured, add `Authorization: Bearer <token>` to every request except the root, health, and OpenAPI discovery endpoints.
+If `SPLAY_API_TOKEN` is configured, add `Authorization: Bearer <token>` to every request except the root, health, and OpenAPI discovery endpoints.
 
 ## Configuration
 
-The API loads the root `.env` file. Existing secrets and generated output are not copied, rewritten, or committed. See `.env.example` for the full configuration surface.
+The API loads root `.env.local` first and then `.env`, without overwriting values already present in the process environment. Existing secrets and generated output are not copied, rewritten, or committed. See `.env.example` for the full configuration surface.
 
 This workspace copy intentionally excludes `.env`, `.gbrain-cache`, `output`, and `node_modules`. Set `GBRAIN_LOCAL_REPO` to a clean local GBrain checkout (or populate `<project>/.gbrain-cache`) before live generation. For a deterministic local demo, set `GBRAIN_USE_MOCK=1` and `SOCIAL_AGENT_USE_MOCK_LLM=1`.
 
@@ -104,7 +128,7 @@ Application settings:
 - `API_HOST=127.0.0.1`
 - `API_PORT=4173`
 - `API_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173`
-- `ARVYA_API_TOKEN` protects private API data and mutations and is mandatory for a non-loopback bind
+- `SPLAY_API_TOKEN` protects private API data and mutations and is mandatory for a non-loopback bind
 - `API_BODY_LIMIT_BYTES` defaults to 2 MiB
 
 Provider behavior:
@@ -112,7 +136,7 @@ Provider behavior:
 - GBrain defaults to the credential-free, allowlisted local reader in `scripts/local-gbrain-mcp.py`.
 - Text generation uses OpenAI or Anthropic when configured, otherwise the core's deterministic local generator.
 - Visual generation keeps exact copy and official brand assets under the deterministic compositor.
-- Publishing requires Buffer configuration and R2 whenever an approved post has local media.
+- Publishing requires Buffer configuration and Convex storage whenever an approved post has local media.
 
 ## Core commands
 
@@ -149,6 +173,7 @@ Test mode writes to `output/test`, disables external publishing/database access,
 
 ```text
 apps/api/              HTTP application boundary and OpenAPI contract
+convex/                Convex schema and protected media upload mutations
 scripts/runtime/       Existing editorial, visual, publishing, and analytics core
 scripts/local-gbrain-* Credential-free local GBrain access
 references/            Editorial and operational specifications

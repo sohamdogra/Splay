@@ -155,7 +155,7 @@ export class GBrainClient {
       params: {
         protocolVersion: "2025-03-26",
         capabilities: {},
-        clientInfo: { name: "gbrain-social-agent", version: "0.1.0" }
+        clientInfo: { name: "splay", version: "0.1.0" }
       }
     };
     const call = {

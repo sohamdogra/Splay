@@ -19,7 +19,7 @@ scripts/runtime
   - editorial tournament and compliance gates
   - visual composition and QA
   - review state and scheduling
-  - R2, Buffer, metrics, and feedback
+  - Convex storage, Buffer, metrics, and feedback
       |
       v
 output/post-pack.json + optional PostgreSQL
@@ -38,10 +38,10 @@ Jobs are currently process-local and retain the latest 100 completed records. Mo
 ## Security model
 
 - The API binds to `127.0.0.1` by default.
-- A non-loopback bind is refused unless `ARVYA_API_TOKEN` is set.
+- A non-loopback bind is refused unless `SPLAY_API_TOKEN` is set.
 - When a token is configured, every private data and mutation request requires `Authorization: Bearer <token>`; only root, health, and OpenAPI discovery remain public.
 - Browser origins are allowlisted with `API_ALLOWED_ORIGINS`; wildcard CORS is not used.
-- Publishing requires an explicit `confirm: true` request and preflights Buffer/R2 configuration.
+- Publishing requires an explicit `confirm: true` request and preflights Buffer/Convex configuration.
 - Local media is served only from the configured output directory.
 - The default GBrain bridge is the repository's credential-free, public-safe local reader, not the legacy remote proxy.
 

@@ -1,9 +1,9 @@
 {
-  "name": "arvya-social-agent-core",
+  "name": "splay-core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Deterministic editorial, visual, publishing, and analytics core for the Arvya Social Agent application.",
+  "description": "Deterministic editorial, visual, publishing, and analytics core for Splay.",
   "scripts": {
     "generate": "node --experimental-strip-types src/cli/generate.ts",
     "generate:auto": "node --experimental-strip-types src/cli/generateAuto.ts",
@@ -42,9 +42,9 @@
     "node": ">=22.6"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1075.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "convex": "^1.42.3",
     "pg": "^8.22.0",
     "prisma": "^7.8.0",
     "puppeteer": "^25.2.1"

@@ -75,7 +75,7 @@ export function createApiServer(options: CreateServerOptions = {}): Server {
 
       if (request.method === "GET" && pathname === "/") {
         return sendJson(request, response, 200, {
-          name: "Arvya Social Agent API",
+          name: "Splay API",
           api: API_PREFIX,
           health: `${API_PREFIX}/health`,
           openapi: `${API_PREFIX}/openapi.json`
@@ -257,7 +257,7 @@ export async function startApiServer(): Promise<Server> {
       resolve();
     });
   });
-  console.log(`Arvya Social Agent API listening at http://${apiConfig.host}:${apiConfig.port}`);
+  console.log(`Splay API listening at http://${apiConfig.host}:${apiConfig.port}`);
   return server;
 }
 
@@ -286,10 +286,10 @@ async function assertPublishingReady(): Promise<void> {
   }
 
   const needsHosting = approved.some((post) => post.image_url && !/^https?:\/\//i.test(post.image_url));
-  const hasR2 = ["R2_ENDPOINT", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET", "R2_PUBLIC_BASE_URL"]
+  const hasConvexStorage = ["CONVEX_URL", "CONVEX_INGEST_TOKEN"]
     .every((key) => Boolean(process.env[key]));
-  if (needsHosting && !hasR2) {
-    throw new HttpError(503, "R2 hosting must be configured for approved posts with local media.", "media_host_not_configured");
+  if (needsHosting && !hasConvexStorage) {
+    throw new HttpError(503, "Convex storage must be configured for approved posts with local media.", "media_host_not_configured");
   }
 }
 

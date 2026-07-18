@@ -18,7 +18,7 @@ loadEnv();
 
 const mapPath = readArg("--map");
 if (!mapPath) throw new Error("Usage: replace-scheduled-images --map <post-buffer-map.json>");
-if (!isImageHostConfigured()) throw new Error("R2 image hosting must be configured before replacing scheduled Buffer images.");
+if (!isImageHostConfigured()) throw new Error("Convex image hosting must be configured before replacing scheduled Buffer images.");
 
 const pack = await loadPostPack();
 const entries = await readReplacementMap(mapPath);
@@ -38,8 +38,8 @@ if (new Set(prepared.map((item) => item.bufferPostId)).size !== prepared.length)
 
 const hosted = await Promise.all(prepared.map(async ({ post, bufferPostId }) => {
   const result = await hostImageIfLocal(post);
-  if (!/^https?:\/\//i.test(result.post.image_url)) throw new Error(`R2 hosting did not produce a public image URL for ${post.id}.`);
-  return { post: result.post, bufferPostId, hostedKey: result.hostedKey };
+  if (!/^https:\/\//i.test(result.post.image_url)) throw new Error(`Convex hosting did not produce a public HTTPS image URL for ${post.id}.`);
+  return { post: result.post, bufferPostId, storageId: result.storageId };
 }));
 
 const publisher = new BufferPublisher();
