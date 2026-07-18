@@ -6,6 +6,9 @@ export type Decision = "approve" | "revise" | "reject";
 
 export type ReviewReason =
   | "strong_insight"
+  | "strong_proof"
+  | "good_voice"
+  | "approved_without_note"
   | "too_generic"
   | "unsupported"
   | "different_angle"
@@ -42,6 +45,10 @@ export interface SplayPost {
     why_now: string;
   };
   review_history?: ReviewEvent[];
+  editorial_evaluation?: {
+    compliance: { passed: boolean; errors: string[]; warnings?: string[] };
+    editorial_review: { verdict: "publish" | "revise" | "reject"; rationale?: string[] };
+  };
   campaign_id?: string;
   campaign_occurrence?: number;
   brand_kit_version?: number;

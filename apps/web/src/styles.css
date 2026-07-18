@@ -408,6 +408,44 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .reason-row button:hover:not(:disabled) { border-color: #1f2937; background: #1f2937; color: #fff; }
 .reason-row .text-button { border: 0; background: transparent; color: #9ca3af; }
 
+.approval-override {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid rgba(22, 163, 74, .2);
+  border-radius: 14px;
+  background: #f3fbf6;
+}
+.approval-override > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.approval-override strong { color: #166534; font-size: 12.5px; }
+.approval-override span { color: #64748b; font-size: 11.5px; line-height: 1.45; }
+.approval-override label { display: block; }
+.approval-override textarea {
+  width: 100%;
+  min-height: 74px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f2937;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.approval-override textarea:focus { border-color: #16a34a; outline: 2px solid rgba(22, 163, 74, .12); }
+.override-actions { display: flex; align-items: center; gap: 8px; }
+.text-button {
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.text-button:hover:not(:disabled) { color: #1f2937; }
+
 .primary-pill {
   padding: 9px 20px;
   border: 0;

@@ -200,11 +200,13 @@ function sourceLabel(post: SplayPost): string {
 export function PostCard({ post, approvedCount, onDecision, onSchedule, onPublish }: {
   post: SplayPost;
   approvedCount: number;
-  onDecision: (id: string, decision: Decision, reason: ReviewReason) => Promise<void>;
+  onDecision: (id: string, decision: Decision, reason: ReviewReason, note?: string) => Promise<void>;
   onSchedule: (id: string, value: string) => Promise<void>;
   onPublish: () => Promise<void>;
 }) {
   const [reasonFor, setReasonFor] = useState<"revise" | "reject" | null>(null);
+  const [approvalOverride, setApprovalOverride] = useState(false);
+  const [approvalNote, setApprovalNote] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -217,6 +219,8 @@ export function PostCard({ post, approvedCount, onDecision, onSchedule, onPublis
     try {
       await operation();
       setReasonFor(null);
+      setApprovalOverride(false);
+      setApprovalNote("");
       setConfirming(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong.");
@@ -232,6 +236,25 @@ export function PostCard({ post, approvedCount, onDecision, onSchedule, onPublis
   const status = statusPresentation[post.status];
   const image = mediaUrl(post.media_url);
   const isVideo = post.format_type?.toLowerCase().includes("video");
+  const editorialVerdict = post.editorial_evaluation?.editorial_review.verdict;
+  const compliancePassed = post.editorial_evaluation?.compliance.passed !== false;
+
+  const startApproval = () => {
+    setError("");
+    if (!compliancePassed) {
+      setError(`This draft cannot be approved because compliance failed: ${post.editorial_evaluation?.compliance.errors.join(" · ") || "review the compliance errors"}.`);
+      return;
+    }
+    if (editorialVerdict === "reject") {
+      setError("This draft cannot be approved because the editorial verdict is reject. Revise or regenerate it first.");
+      return;
+    }
+    if (editorialVerdict === "revise") {
+      setApprovalOverride(true);
+      return;
+    }
+    void run(() => onDecision(post.id, "approve", "strong_insight"));
+  };
 
   return (
     <article className="post-card" aria-label={`${post.platform === "linkedin" ? "LinkedIn" : "X"} ${status.label} post`}>
@@ -255,11 +278,34 @@ export function PostCard({ post, approvedCount, onDecision, onSchedule, onPublis
         </div>
       </div>
 
-      {post.status === "draft" && !reasonFor && (
+      {post.status === "draft" && !reasonFor && !approvalOverride && (
         <div className="card-actions">
-          <button className="action-button approve" disabled={pending} onClick={() => run(() => onDecision(post.id, "approve", "strong_insight"))}>Approve</button>
+          <button className="action-button approve" disabled={pending} onClick={startApproval}>Approve</button>
           <button className="action-button" disabled={pending} onClick={() => setReasonFor("revise")}>Revise</button>
           <button className="action-button reject" disabled={pending} onClick={() => setReasonFor("reject")}>Reject</button>
+        </div>
+      )}
+
+      {approvalOverride && (
+        <div className="approval-override">
+          <div>
+            <strong>Approve with an editorial override</strong>
+            <span>This draft was marked revise. Explain specifically why it is still ready to publish.</span>
+          </div>
+          <label>
+            <span className="sr-only">Approval override explanation</span>
+            <textarea
+              value={approvalNote}
+              maxLength={2000}
+              autoFocus
+              onChange={(event) => setApprovalNote(event.target.value)}
+              placeholder="The insight is specific and supported by the source; the generic wording is acceptable because…"
+            />
+          </label>
+          <div className="override-actions">
+            <button className="action-button approve" disabled={pending || approvalNote.trim().length < 10} onClick={() => void run(() => onDecision(post.id, "approve", "strong_insight", approvalNote))}>Approve override</button>
+            <button className="text-button" disabled={pending} onClick={() => { setApprovalOverride(false); setApprovalNote(""); }}>Cancel</button>
+          </div>
         </div>
       )}
 

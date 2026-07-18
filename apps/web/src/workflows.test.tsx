@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { BrandKitView } from "./BrandKitView";
 import { CampaignsView } from "./CampaignsView";
-import type { BrandKit } from "./types";
+import { PostCard } from "./components";
+import type { BrandKit, SplayPost } from "./types";
 
 const brandKit: BrandKit = {
   version: 1,
@@ -43,5 +44,41 @@ describe("campaign and brand workflows", () => {
     await user.click(screen.getByRole("button", { name: "Save brand kit" }));
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ tagline: "Every claim stays connected to its source." }));
+  });
+
+  it("collects a specific explanation before overriding a revise verdict", async () => {
+    const onDecision = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    const post: SplayPost = {
+      id: "post-revise",
+      platform: "x",
+      topic: "Retention signals",
+      post_text: "Customer retention starts with finding the signal before the churn event.",
+      hashtags: [],
+      status: "draft",
+      created_at: "2026-07-18T00:00:00.000Z",
+      scheduled_for: null,
+      media_url: null,
+      alt_text: "Retention signal illustration",
+      source_context: { summary: "Retention source", gbrain_references: [], why_now: "Current campaign" },
+      editorial_evaluation: {
+        compliance: { passed: true, errors: [] },
+        editorial_review: { verdict: "revise", rationale: ["too generic"] }
+      }
+    };
+
+    render(<PostCard post={post} approvedCount={0} onDecision={onDecision} onSchedule={vi.fn()} onPublish={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+
+    const note = screen.getByLabelText("Approval override explanation");
+    await user.type(note, "The claim is specific and directly supported by the company source.");
+    await user.click(screen.getByRole("button", { name: "Approve override" }));
+
+    expect(onDecision).toHaveBeenCalledWith(
+      "post-revise",
+      "approve",
+      "strong_insight",
+      "The claim is specific and directly supported by the company source."
+    );
   });
 });

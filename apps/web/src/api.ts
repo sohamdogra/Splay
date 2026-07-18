@@ -126,10 +126,10 @@ export async function generatePosts(topic: string, creative: boolean): Promise<J
   return response.data;
 }
 
-export async function decidePost(id: string, decision: Decision, reason: ReviewReason): Promise<SplayPost> {
+export async function decidePost(id: string, decision: Decision, reason: ReviewReason, note?: string): Promise<SplayPost> {
   const response = await request<ApiEnvelope<SplayPost>>(`/api/v1/posts/${encodeURIComponent(id)}/decisions`, {
     method: "POST",
-    body: JSON.stringify({ decision, reason })
+    body: JSON.stringify({ decision, reason, ...(note?.trim() ? { note: note.trim() } : {}) })
   });
   return response.data;
 }

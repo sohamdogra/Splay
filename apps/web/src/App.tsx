@@ -117,8 +117,8 @@ export default function App() {
     }
   };
 
-  const handleDecision = async (id: string, decision: Decision, reason: ReviewReason) => {
-    updatePost(await decidePost(id, decision, reason));
+  const handleDecision = async (id: string, decision: Decision, reason: ReviewReason, note?: string) => {
+    updatePost(await decidePost(id, decision, reason, note));
   };
 
   const handleSchedule = async (id: string, value: string) => {
